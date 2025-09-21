@@ -1,0 +1,37 @@
+[
+  {
+    "category": "POLITICS",
+    "headline": "There Were 2 Mass Shootings In Texas Last Week, But Only 1 On TV",
+    "short_description": "She left her husband. He killed their children. Just another day in America.",
+    "date": "2018-05-26",
+    "link": "https://www.huffingtonpost.com/entry/texas-amanda-painter-mass-shooting_us_5b081ab4e4b0802d69caad89"
+  },
+  {
+    "category": "WELLNESS",
+    "headline": "Will Smith Joins Snapchat, Freaks Everyone Out With Colonoscopy",
+    "short_description": "That's one way to announce you're on social media.",
+    "date": "2017-12-13",
+    "link": "https://www.huffingtonpost.com/entry/will-smith-joins-snapchat-colonoscopy_us_5a3176f9e4b0c65287acc0f3"
+  },
+  {
+    "category": "ENTERTAINMENT",
+    "headline": "Hugh Grant Marries For The First Time At Age 57",
+    "short_description": "The actor and his longtime girlfriend Anna Eberstein tied the knot in a civil ceremony.",
+    "date": "2018-05-25",
+    "link": "https://www.huffingtonpost.com/entry/hugh-grant-marries_us_5b08c3e9e4b0568a880b6c0c"
+  },
+  {
+    "category": "TRAVEL",
+    "headline": "A Meat Lovers' Guide To Vegetarian Cooking",
+    "short_description": "Don't let your dietary restrictions stop you from traveling.",
+    "date": "2016-09-10",
+    "link": "https://www.huffingtonpost.com/entry/a-meat-lovers-guide-to-vegetarian-cooking_us_57d3e205e4b06a74c9f1f3b4"
+  },
+  {
+    "category": "TECH",
+    "headline": "Amazon Is Challenging Netflix With Ambitious Programming",
+    "short_description": "The company is looking beyond 'Transparent' and 'Mozart in the Jungle.'",
+    "date": "2017-01-24",
+    "link": "https://www.huffingtonpost.com/entry/amazon-netflix-content-video_us_588709aae4b096b4a2335e2f"
+  }
+]

@@ -1,0 +1,102 @@
+[
+  {
+    "id": 1,
+    "category": "POLITICS",
+    "title": "There Were 2 Mass Shootings In Texas Last Week, But Only 1 On TV",
+    "content": "She left her husband. He killed their children. Just another day in America. The Ponder, Texas, mass shooting was one of at least two mass shootings that occurred in Texas last week. However, the story in Plano, Texas, where a man shot and killed eight people, received far more attention. The discrepancy in coverage is not surprising given the demographics of the victims.",
+    "date": "2017-05-26",
+    "authors": "Melissa Jeltsen",
+    "link": "https://www.huffingtonpost.com/entry/texas-amanda-painter-mass-shooting_us_5923",
+    "short_description": "She left her husband. He killed their children. Just another day in America."
+  },
+  {
+    "id": 2,
+    "category": "WELLNESS",
+    "title": "Visualization Exercises For Better Sleep",
+    "content": "Having trouble sleeping? You're not alone. Sleep issues affect millions of people worldwide. Visualization exercises can be a powerful tool to help calm your mind and prepare your body for rest. Try imagining a peaceful beach scene, complete with the sound of waves and warm sand beneath you. This technique has been shown to reduce anxiety and promote deeper sleep.",
+    "date": "2017-05-26",
+    "authors": "Lindsay Holmes",
+    "link": "https://www.huffingtonpost.com/entry/visualization-for-sleep_us_5924",
+    "short_description": "Trouble counting sheep? This mental exercise will help you fall asleep faster."
+  },
+  {
+    "id": 3,
+    "category": "TRAVEL",
+    "title": "How To Get Your Toddler To Cooperate For Family Travel Photos",
+    "content": "Family vacations create memories that last a lifetime, but getting the perfect photo with toddlers can be challenging. Professional photographers share their top tips for capturing those precious moments. Start with timing - shoot during your child's happiest hours, usually after meals and naps. Bring favorite toys as props and don't force smiles. Sometimes the candid moments are the most memorable.",
+    "date": "2017-05-26",
+    "authors": "Caroline Bologna",
+    "link": "https://www.huffingtonpost.com/entry/toddler-travel-photos_us_5925",
+    "short_description": "It's not easy, but it's worth it."
+  },
+  {
+    "id": 4,
+    "category": "BUSINESS",
+    "title": "Uber Reportedly Fired Executive Who Obtained Rape Victim's Medical Records",
+    "content": "Uber has fired a top executive who obtained the medical records of a rape victim in India. The executive, Eric Alexander, was the president of business in Asia Pacific. The incident highlights ongoing concerns about Uber's corporate culture and treatment of women. The company has been under fire for multiple scandals involving harassment and discrimination.",
+    "date": "2017-06-07",
+    "authors": "Emma Grey Ellis",
+    "link": "https://www.huffingtonpost.com/entry/uber-executive-rape-medical-records_us_5926",
+    "short_description": "Eric Alexander ran Asia Pacific business."
+  },
+  {
+    "id": 5,
+    "category": "POLITICS",
+    "title": "Why The Trump-Russia Investigation Is Moving So Quickly",
+    "content": "The investigation into Russian interference in the 2016 election is moving at an unprecedented pace. Legal experts say this is due to several factors, including the appointment of special counsel Robert Mueller, the cooperation of key witnesses, and the digital trail left by modern communications. The speed of the investigation has surprised even veteran prosecutors who expected a much longer timeline.",
+    "date": "2017-06-07",
+    "authors": "Ryan Reilly",
+    "link": "https://www.huffingtonpost.com/entry/trump-russia-investigation-speed_us_5927",
+    "short_description": "The special counsel's investigation is moving faster than many expected."
+  },
+  {
+    "id": 6,
+    "category": "ENTERTAINMENT",
+    "title": "'Wonder Woman' Proves Audiences Are Ready For Female Superheroes",
+    "content": "Wonder Woman's box office success has shattered the myth that female-led superhero movies can't succeed. The film earned over $100 million in its opening weekend, proving that audiences are hungry for diverse storytelling. Director Patty Jenkins has created a film that appeals to all demographics while staying true to the character's feminist roots. Industry experts predict this will lead to more female-driven action films.",
+    "date": "2017-06-07",
+    "authors": "Matthew Jacobs",
+    "link": "https://www.huffingtonpost.com/entry/wonder-woman-box-office_us_5928",
+    "short_description": "The film's success is reshaping Hollywood's approach to superhero movies."
+  },
+  {
+    "id": 7,
+    "category": "TECH",
+    "title": "Apple's HomePod Is Late To The Smart Speaker Game",
+    "content": "Apple announced its HomePod smart speaker at WWDC, entering a market already dominated by Amazon's Echo and Google Home. Priced at $349, it's significantly more expensive than competitors. Apple is betting on superior sound quality and deep iOS integration to win over consumers. However, analysts question whether these features justify the premium price in an increasingly crowded market.",
+    "date": "2017-06-07",
+    "authors": "Damon Beres",
+    "link": "https://www.huffingtonpost.com/entry/apple-homepod-smart-speaker_us_5929",
+    "short_description": "The $349 speaker faces tough competition from Amazon and Google."
+  },
+  {
+    "id": 8,
+    "category": "SCIENCE",
+    "title": "Scientists Discover Oldest Human Fossils Outside Africa",
+    "content": "Archaeologists have discovered 300,000-year-old fossils in Morocco that could rewrite the story of human evolution. The fossils suggest that Homo sapiens evolved across Africa, not just in East Africa as previously thought. This discovery pushes back the origins of our species by 100,000 years and challenges existing theories about human migration patterns. The findings were published in the journal Nature.",
+    "date": "2017-06-08",
+    "authors": "Jacqueline Howard",
+    "link": "https://www.huffingtonpost.com/entry/oldest-human-fossils-morocco_us_5930",
+    "short_description": "The 300,000-year-old fossils challenge existing theories of human evolution."
+  },
+  {
+    "id": 9,
+    "category": "WELLNESS",
+    "title": "The Hidden Health Benefits Of Gardening",
+    "content": "Gardening offers more than just fresh vegetables and beautiful flowers. Research shows it can reduce stress, improve mental health, and provide moderate physical exercise. The act of nurturing plants releases serotonin, a natural antidepressant. Additionally, exposure to soil bacteria can boost your immune system. Whether you have a large yard or just a windowsill, gardening can transform your health.",
+    "date": "2017-06-08",
+    "authors": "Sarah DiGiulio",
+    "link": "https://www.huffingtonpost.com/entry/gardening-health-benefits_us_5931",
+    "short_description": "From stress relief to immune support, gardening is good for your health."
+  },
+  {
+    "id": 10,
+    "category": "EDUCATION",
+    "title": "Why Finland's Education System Continues To Lead The World",
+    "content": "Finland's education system consistently ranks among the world's best, despite having shorter school days and less homework than most countries. The secret lies in their approach: highly trained teachers, play-based learning, and no standardized testing until age 16. Finnish students learn through exploration and creativity rather than memorization. This model is now being studied and adapted by education systems worldwide.",
+    "date": "2017-06-08",
+    "authors": "Rebecca Klein",
+    "link": "https://www.huffingtonpost.com/entry/finland-education-system_us_5932",
+    "short_description": "Less homework, more play, better results - the Finnish model explained."
+  }
+]

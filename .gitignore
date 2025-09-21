@@ -9,11 +9,11 @@ coverage/
 */coverage/
 
 # Production
-build/
-dist/
-*/build/
-*/dist/
-out/
+# build/
+# dist/
+# */build/
+# */dist/
+# out/
 
 # Environment variables
 .env
@@ -92,7 +92,7 @@ models_cache/
 .npm
 
 # Database
-db/
+# db/
 *.sqlite
 *.db
 
