@@ -1,340 +1,294 @@
-# 🌳 Phylo Explorer - Sistema de Análise Filogenética
+# 🌳 Phylo Explorer Paper - Sistema de Análise Filogenética de Documentos
 
-## 📊 Arquitetura Atual - 3 Serviços Principais
+Sistema web interativo para análise filogenética de coleções de documentos, permitindo visualização de relações evolutivas entre textos através de árvores filogenéticas, word clouds e análises temporais.
+
+## 📊 Arquitetura do Sistema
 
 ```
-    ┌───────────────────┐
-    │                   │
-    │     Frontend      │
-    │    (Next.js)      │
-    │  localhost:3000   │
-    └─────────┬─────────┘
-              │
-              ▼
-    ┌───────────────────┐
-    │                   │
-    │  Backend Node.js  │
-    │  (API Gateway)    │
-    │  localhost:6001   │
-    └─────────┬─────────┘
-              │
-              ▼
-    ┌───────────────────┐
-    │                   │
-    │  Backend Python   │
-    │ (FastAPI + ML)    │
-    │  localhost:8001   │
-    └───────────────────┘
+┌─────────────────────────────────────────┐
+│           Frontend (Next.js)            │
+│   - Interface de usuário responsiva     │
+│   - Visualizações D3.js interativas     │
+│   - Upload e gerenciamento de arquivos  │
+└─────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────┐
+│         Backend (Node.js/Express)       │
+│   - API REST para processamento         │
+│   - Integração com serviços ML          │
+│   - Geração de árvores filogenéticas    │
+└─────────────────────────────────────────┘
 ```
 
 ## 🚀 Componentes do Sistema
 
-### 1. **Frontend (Next.js)**
+### Frontend (Next.js)
 - **Porta**: 3000
-- **Tecnologias**: React, Next.js, Chakra UI, D3.js
-- **Função**: Interface do usuário com visualizações interativas de árvores filogenéticas
-- **Status**: ✅ Operacional
+- **Tecnologias**: React 18, Next.js 14, Chakra UI 2.0, D3.js v7
+- **Principais Funcionalidades**:
+  - Visualização interativa de árvores filogenéticas
+  - Word cloud dinâmico dos termos mais frequentes
+  - Timeline/River chart para análise temporal
+  - Upload e processamento de arquivos CSV/JSON
+  - Interface responsiva e moderna
 
-### 2. **Backend Node.js (API Gateway)**
-- **Porta**: 6001
-- **Tecnologias**: Node.js, Express, Axios
-- **Função**: Gateway de API e orquestração de requisições
-- **Status**: ✅ Operacional
-- **Integra com**: Frontend e Backend Python
+### Backend (Node.js/Express)
+- **Porta**: 4000
+- **Tecnologias**: Node.js 18+, Express 4, Axios
+- **Principais Funcionalidades**:
+  - API RESTful para comunicação frontend-backend
+  - Processamento de dados e geração de árvores Newick
+  - Integração com serviços de ML (Gradio/HuggingFace)
+  - Análise de similaridade textual
+  - Geolocalização e busca web integrada
 
-### 3. **Backend Python (FastAPI + ML Service)** 🔧
-- **Porta**: 8001
-- **Tecnologias**: Python 3.12, FastAPI, Uvicorn, Pydantic
-- **Função**:
-  - Processamento de algoritmos filogenéticos (Neighbor-Joining)
-  - Serviços de Machine Learning e NLP
-  - Geração de embeddings textuais
-  - Processamento de linguagem natural
-- **Status**: ✅ Implementado e Operacional
-- **Documentação**:
-  - Swagger UI: http://localhost:8001/docs
-  - ReDoc: http://localhost:8001/redoc
-- **Características**:
-  - Servidor ASGI assíncrono de alto desempenho
-  - Validação automática com Pydantic
-  - Integração nativa com bibliotecas ML (Hugging Face, spaCy, scikit-learn)
-
-## 📦 Estrutura de Diretórios
+## 📁 Estrutura do Projeto
 
 ```
-phylo_explorer_project/
+philo_explorer_paper/
 │
-├── frontend/              # Interface do usuário (Next.js)
-│   ├── node_modules/
-│   ├── pages/
-│   ├── components/
-│   └── package.json
+├── frontend/                  # Aplicação Frontend
+│   ├── app/                  # App directory (Next.js 14)
+│   │   ├── layout.jsx       # Layout principal
+│   │   ├── page.jsx         # Página inicial
+│   │   └── providers.jsx    # Providers React
+│   ├── components/          # Componentes React
+│   │   ├── layout/         # Componentes de layout
+│   │   ├── visualizations/ # Visualizações D3.js
+│   │   └── _ui/           # Componentes UI reutilizáveis
+│   ├── public/             # Assets públicos
+│   │   └── datasets/       # Datasets de exemplo
+│   └── package.json        # Dependências frontend
 │
-├── backend/              # API Gateway (Node.js/Express)
-│   ├── node_modules/
-│   ├── api/
-│   ├── config/
-│   └── package.json
+├── backend/                  # Aplicação Backend
+│   ├── src/                 # Código fonte
+│   │   ├── routes/         # Rotas da API
+│   │   └── services/       # Serviços de negócio
+│   ├── config/             # Configurações
+│   ├── middleware/         # Middlewares Express
+│   └── package.json        # Dependências backend
 │
-├── backend-python/       # Backend Python com ML integrado
-│   ├── venv/            # Ambiente virtual Python
-│   ├── main.py          # Aplicação principal FastAPI
-│   ├── requirements.txt # Dependências Python
-│   └── README.md        # Documentação específica
-│
-├── start-services.sh     # Script para iniciar os 3 serviços
-├── stop-services.sh      # Script para parar os serviços
-└── README.md            # Este arquivo
+├── .gitignore              # Arquivos ignorados pelo Git
+├── .env.example            # Exemplo de variáveis de ambiente
+└── README.md               # Este arquivo
 ```
 
-## 🛠️ Instalação e Execução
+## 🚀 Instalação e Execução
 
 ### Pré-requisitos
-- Node.js 18+
-- Python 3.8+
-- npm ou yarn
-- pip
+- Node.js 18+ e npm
+- Git
 
-### Instalação Rápida
+### Instalação
 
 1. **Clone o repositório**
 ```bash
-git clone <repository-url>
-cd phylo_explorer_project
+git clone https://github.com/acauanrr/philo_explorer_paper.git
+cd philo_explorer_paper
 ```
 
-2. **Inicie todos os serviços**
-```bash
-./start-services.sh
-```
-
-3. **Acesse os serviços**
-- Frontend: http://localhost:3000
-- Backend Node.js: http://localhost:6001
-- Backend Python: http://localhost:8001
-
-### Instalação Manual (por serviço)
-
-#### Backend Python (FastAPI + ML)
-```bash
-cd backend-python
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-pip install -r requirements.txt
-python main.py
-```
-
-#### Backend Node.js
+2. **Instale as dependências do Backend**
 ```bash
 cd backend
 npm install
-npm run dev
 ```
 
-#### Frontend
+3. **Instale as dependências do Frontend**
+```bash
+cd ../frontend
+npm install
+```
+
+### Execução
+
+1. **Inicie o Backend** (em um terminal)
+```bash
+cd backend
+npm run dev
+# Backend rodando em http://localhost:4000
+```
+
+2. **Inicie o Frontend** (em outro terminal)
 ```bash
 cd frontend
-npm install
 npm run dev
+# Frontend rodando em http://localhost:3000
 ```
 
-## 🔄 Fluxo de Dados
+3. **Acesse a aplicação**
+   - Abra o navegador em http://localhost:3000
 
-```
-Usuário → Frontend → Backend Node.js → Backend Python
-                                          ↓
-                                    [ML Processing]
-                                    [NLP Analysis]
-                                    [Neighbor-Joining]
-                                          ↓
-Usuário ← Frontend ← Backend Node.js ← Resultados
-```
+## 🔄 Funcionalidades Principais
 
-1. **Usuário** interage com o **Frontend** (React/Next.js)
-2. **Frontend** envia requisições ao **Backend Node.js**
-3. **Backend Node.js** encaminha para **Backend Python**
-4. **Backend Python** processa com ML e algoritmos filogenéticos
-5. Resultados retornam pela mesma cadeia até o usuário
+### Visualizações Interativas
+- **Árvore Filogenética**: Visualização hierárquica de relações entre documentos
+- **Word Cloud**: Nuvem de palavras com termos mais frequentes
+- **Timeline/River**: Análise temporal da evolução dos documentos
+- **Coordenação**: Todas as visualizações se atualizam sincronizadamente
 
-## 📍 Endpoints Principais
+### Processamento de Dados
+- Upload de arquivos CSV e JSON
+- Análise de similaridade textual usando TF-IDF
+- Geração de árvores filogenéticas com algoritmo Neighbor-Joining
+- Processamento de linguagem natural para extração de features
 
-### Backend Python (FastAPI) - Porto 8001
-- `GET /` - Informações da API
-- `GET /health` - Verificação de saúde
-- `GET /metrics` - Métricas do sistema
-- `GET /api/info` - Informações detalhadas do serviço
-- `GET /docs` - Documentação Swagger interativa
-- `GET /redoc` - Documentação ReDoc
+## 📡 API Endpoints
 
-### Backend Node.js - Porto 6001
-- `GET /health` - Status do serviço
-- `POST /api/generate-tree` - Gerar árvore filogenética
-- `POST /api/search-node` - Buscar informações de nós
+### Backend (Porto 4000)
+- `GET /health` - Verificação de saúde do serviço
+- `POST /api/phylo/generate-tree` - Gerar árvore filogenética
+- `POST /api/phylo/analyze` - Analisar documentos
+- `GET /api/phylo/search-node` - Buscar informações de nós
+- `POST /api/phylo/ml-service` - Integração com serviços ML
 
-### Frontend - Porto 3000
-- Interface web completa para visualização de árvores filogenéticas
+## 🛠️ Tecnologias Utilizadas
 
-## 🎯 Vantagens da Arquitetura
+### Frontend
+- **Next.js 14**: Framework React com App Router
+- **React 18**: Biblioteca UI com hooks modernos
+- **Chakra UI 2.0**: Sistema de design components
+- **D3.js v7**: Visualizações de dados interativas
+- **Axios**: Cliente HTTP para API calls
 
-### Por que Python + FastAPI?
-✅ **Integração Superior com ML**: Acesso direto a TensorFlow, PyTorch, Scikit-learn
-✅ **Performance Assíncrona**: Comparable a Go e Node.js
-✅ **Documentação Automática**: Swagger/ReDoc gerados automaticamente
-✅ **Type Safety**: Validação robusta com Pydantic
-✅ **Ecossistema Rico**: NumPy, Pandas, BioPython nativamente disponíveis
+### Backend
+- **Node.js**: Runtime JavaScript server-side
+- **Express 4**: Framework web minimalista
+- **Gradio Client**: Integração com modelos ML
+- **Cors**: Habilitação de CORS
+- **Dotenv**: Gerenciamento de variáveis de ambiente
 
-### Comparação com Java/Tomcat
-- ⚡ **3x menor latência** para operações ML
-- 📦 **70% menos uso de memória** que JVM
-- 🔧 **Desenvolvimento 2x mais rápido** com hot reload
-- 🤝 **Integração direta** com bibliotecas científicas
-
-## 🔐 Configuração
+## ⚙️ Configuração
 
 ### Variáveis de Ambiente
 
-#### Frontend (.env.local)
-```env
-NEXT_PUBLIC_API_URL=http://localhost:6001
-NEXT_PUBLIC_PYTHON_API_URL=http://localhost:8001
-```
+Crie um arquivo `.env` na raiz do projeto backend:
 
-#### Backend Node.js (.env)
 ```env
 NODE_ENV=development
-PORT=6001
+PORT=4000
 CORS_ORIGIN=http://localhost:3000
-PYTHON_BACKEND_URL=http://localhost:8001
+ML_SERVICE_URL=https://your-ml-service.hf.space
 ```
 
-#### Backend Python (.env)
+Crie um arquivo `.env.local` na raiz do projeto frontend:
+
 ```env
-ENVIRONMENT=development
-HOST=0.0.0.0
-PORT=8001
-LOG_LEVEL=DEBUG
+NEXT_PUBLIC_API_URL=http://localhost:4000
 ```
 
-## 📊 Monitoramento
+## 📊 Uso da Aplicação
 
-### Verificar Status
-```bash
-# Verificar todos os serviços
-curl http://localhost:3000          # Frontend
-curl http://localhost:6001/health   # Backend Node.js
-curl http://localhost:8001/health   # Backend Python
+1. **Acesse a aplicação** em http://localhost:3000
 
-# Ver métricas detalhadas
-curl http://localhost:8001/metrics
-```
+2. **Faça upload de um arquivo**:
+   - Use os datasets de exemplo em `frontend/public/datasets/`
+   - Formatos suportados: CSV, JSON
 
-### Logs em Tempo Real
-```bash
-# Monitorar logs
-tail -f backend-python/backend-python.log
-tail -f backend/backend-nodejs.log
-tail -f frontend/frontend.log
-```
+3. **Explore as visualizações**:
+   - Navegue pela árvore filogenética
+   - Clique nos nós para ver detalhes
+   - Use o word cloud para análise de termos
+   - Visualize a evolução temporal no timeline
 
-## 🚧 Roadmap
-
-### ✅ Concluído (Seção 7 - Finalizando a Aplicação)
-- [x] Migração do backend para Python/FastAPI
-- [x] Unificação do ML Service com Backend Python
-- [x] Documentação automática (Swagger/ReDoc)
-- [x] Scripts de orquestração simplificados
-- [x] Configuração de CORS entre serviços
-- [x] **Layout Principal com CSS Grid responsivo**
-- [x] **Control Panel aprimorado com upload de arquivos**
-- [x] **Legenda de cores para visualização temporal**
-- [x] **Docker Compose para produção**
-- [x] **Coordenação entre visualizações (Word Cloud, Timeline, Tree)**
-- [x] **Voronoi colorido com transparência ajustável**
-
-### 🔄 Aprimoramentos Futuros (Seção 7.3)
-
-#### Curto Prazo
-- [ ] **Tarefas Assíncronas com Celery**
-  - Fila de tarefas para cálculos longos
-  - Indicadores de progresso em tempo real
-  - WebSockets para atualizações ao vivo
-
-- [ ] **Algoritmos de Clustering Escaláveis**
-  - BIRCH para datasets > 1000 documentos
-  - HDBSCAN para clustering baseado em densidade
-  - Aceleração GPU com RAPIDS
-
-- [ ] **Análise de Texto Avançada**
-  - Modelagem de tópicos com BERTopic
-  - Reconhecimento de entidades nomeadas
-  - Análise de sentimento integrada
-
-#### Longo Prazo
-- [ ] **Atualizações Incrementais da Árvore**
-  - Algoritmos eficientes para dados em streaming
-  - Reconstrução de árvore em tempo real
-  - Detecção e alertas de mudanças
-
-- [ ] **Análise Multi-modal**
-  - Embeddings combinados de imagem e texto
-  - Suporte a transcrição de áudio
-  - Análise de frames de vídeo
-
-- [ ] **Recursos Colaborativos**
-  - Sessões multi-usuário
-  - Anotações e comentários
-  - Estados de visualização compartilhados
+4. **Interaja com os controles**:
+   - Ajuste o zoom e rotação da árvore
+   - Filtre por período temporal
+   - Selecione diferentes métricas de análise
 
 ## 🐛 Troubleshooting
 
-### Porta já em uso
+### Problemas com Submódulos Git
+
+Se você teve problemas com submódulos não inicializados:
+
+1. **Remova configurações de submódulo antigas**:
 ```bash
-./stop-services.sh
-# ou
-lsof -i :PORTA
+git rm --cached backend frontend
+rm -rf backend/.git frontend/.git
+```
+
+2. **Adicione os diretórios como parte normal do repositório**:
+```bash
+git add .
+git commit -m "Converter submódulos em diretórios normais"
+git push
+```
+
+### Porta já em uso
+
+Se a porta estiver ocupada:
+```bash
+# Verificar processo usando a porta
+lsof -i :4000  # ou :3000
+# Finalizar o processo
 kill -9 PID
 ```
 
-### Dependências Python
-```bash
-cd backend-python
-source venv/bin/activate
-pip install -r requirements.txt
-```
+### Erro de CORS
 
-### Dependências Node.js
+Se houver erro de CORS entre frontend e backend:
+1. Verifique se o backend está rodando na porta correta (4000)
+2. Confirme as variáveis de ambiente no `.env`
+3. Reinicie ambos os serviços
+
+### Dependências não instaladas
+
+Se houver erro de módulos não encontrados:
 ```bash
-cd backend  # ou frontend
+# Para o backend
+cd backend
+rm -rf node_modules package-lock.json
+npm install
+
+# Para o frontend
+cd frontend
+rm -rf node_modules package-lock.json
 npm install
 ```
 
-### Erro de CORS
-Verifique as configurações nos arquivos `.env` de cada serviço.
 
-## 🤝 Como Contribuir
+## 📚 Datasets de Exemplo
 
-1. Fork o projeto
-2. Crie uma feature branch (`git checkout -b feature/NovaFuncionalidade`)
-3. Commit suas mudanças (`git commit -m 'Add: Nova funcionalidade'`)
-4. Push para a branch (`git push origin feature/NovaFuncionalidade`)
-5. Abra um Pull Request
+A aplicação inclui datasets de exemplo para teste:
+
+- `frontend/public/datasets/csv/`: Arquivos CSV de exemplo
+  - `bbc_news_sample.csv`: Amostra de notícias da BBC
+  - `fake_news_sample.csv`: Dataset de detecção de fake news
+
+- `frontend/public/datasets/json/`: Arquivos JSON de exemplo
+  - `News_Category_Dataset_sample.json`: Categorias de notícias
+
+- `frontend/public/datasets/newicks/`: Árvores Newick pré-processadas
+  - `articles_n_25.txt`: Árvore de 25 artigos
+  - `news.txt`: Árvore de notícias
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Sinta-se à vontade para:
+
+1. Fazer fork do projeto
+2. Criar uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abrir um Pull Request
 
 ## 📝 Licença
 
-Este projeto está sob licença MIT.
+Este projeto está licenciado sob a Licença MIT - veja o arquivo LICENSE para detalhes.
 
-## 👥 Autores
+## 👤 Autor
 
-- **Acauan** - Arquiteto principal e desenvolvedor
+**Acauan R. Ribeiro**
+- GitHub: [@acauanrr](https://github.com/acauanrr)
 
-## 📞 Suporte
+## 🙏 Agradecimentos
 
-- Abra uma issue no GitHub
-- Email: [contato]
-- Documentação: http://localhost:8001/docs
+- Universidade Federal do Amazonas (UFAM)
+- Programa de Pós-Graduação em Informática
 
 ---
 
-**Versão**: 2.1.0
-**Última atualização**: 2024
-**Status**: 🟢 Produção
+**Versão**: 1.0.0
+**Status**: ✅ Em Desenvolvimento
+**Última Atualização**: Dezembro 2024
