@@ -1,0 +1,191 @@
+{
+  "metadata": {
+    "name": "Synthetic Temporal Dataset for Phylo Explorer",
+    "description": "Dataset sintético para demonstração de mudanças temporais em coleções de texto",
+    "created": "2025-01-21",
+    "version": "1.0"
+  },
+  "timepoint_t1": {
+    "timestamp": "2024-01-01T00:00:00Z",
+    "label": "Time Point T' - Original Collection",
+    "documents": [
+      {
+        "id": "doc001",
+        "title": "Introdução ao Machine Learning",
+        "content": "Machine learning é um subcampo da inteligência artificial que permite que sistemas aprendam e melhorem com a experiência sem serem explicitamente programados. Os algoritmos de aprendizado de máquina constroem modelos matemáticos baseados em dados de treinamento para fazer previsões ou tomar decisões.",
+        "category": "AI Fundamentals",
+        "tags": ["machine learning", "AI", "fundamentals"]
+      },
+      {
+        "id": "doc002",
+        "title": "Deep Learning e Redes Neurais",
+        "content": "Deep learning é uma técnica de machine learning que ensina computadores a fazer o que vem naturalmente aos humanos: aprender pelo exemplo. As redes neurais profundas usam múltiplas camadas de neurônios artificiais para processar informações complexas.",
+        "category": "Deep Learning",
+        "tags": ["deep learning", "neural networks", "AI"]
+      },
+      {
+        "id": "doc003",
+        "title": "Processamento de Linguagem Natural",
+        "content": "O processamento de linguagem natural (PLN) é um ramo da inteligência artificial que ajuda computadores a entender, interpretar e manipular a linguagem humana. PLN combina linguística computacional com machine learning e deep learning.",
+        "category": "NLP",
+        "tags": ["NLP", "linguistics", "AI"]
+      },
+      {
+        "id": "doc004",
+        "title": "Visão Computacional Básica",
+        "content": "Visão computacional é um campo da inteligência artificial que treina computadores para interpretar e entender o mundo visual. Usando imagens digitais de câmeras e vídeos, as máquinas podem identificar e classificar objetos com precisão.",
+        "category": "Computer Vision",
+        "tags": ["computer vision", "image processing", "AI"]
+      },
+      {
+        "id": "doc005",
+        "title": "Algoritmos de Classificação",
+        "content": "Algoritmos de classificação são técnicas de aprendizado supervisionado que categorizam dados em classes predefinidas. Exemplos incluem árvores de decisão, SVM e redes neurais. São fundamentais para problemas de reconhecimento de padrões.",
+        "category": "Algorithms",
+        "tags": ["classification", "supervised learning", "algorithms"]
+      },
+      {
+        "id": "doc006",
+        "title": "Aprendizado por Reforço",
+        "content": "Aprendizado por reforço é uma área do machine learning onde agentes aprendem a tomar decisões através de tentativa e erro. O agente recebe recompensas ou punições baseadas em suas ações, aprendendo a maximizar recompensas ao longo do tempo.",
+        "category": "Reinforcement Learning",
+        "tags": ["reinforcement learning", "agents", "rewards"]
+      },
+      {
+        "id": "doc007",
+        "title": "Clustering e Agrupamento",
+        "content": "Clustering é uma técnica de aprendizado não supervisionado que agrupa objetos similares. Algoritmos como K-means e DBSCAN identificam padrões naturais nos dados sem rótulos predefinidos, útil para segmentação e análise exploratória.",
+        "category": "Unsupervised Learning",
+        "tags": ["clustering", "unsupervised", "k-means"]
+      },
+      {
+        "id": "doc008",
+        "title": "Feature Engineering",
+        "content": "Feature engineering é o processo de criar novas features ou transformar features existentes para melhorar o desempenho de modelos de machine learning. Envolve seleção, extração e criação de variáveis relevantes para o problema.",
+        "category": "Data Preparation",
+        "tags": ["features", "engineering", "preprocessing"]
+      },
+      {
+        "id": "doc009",
+        "title": "Validação de Modelos",
+        "content": "Validação de modelos é crucial para avaliar o desempenho de algoritmos de machine learning. Técnicas como cross-validation, hold-out e bootstrap ajudam a estimar como o modelo generalizará para novos dados não vistos.",
+        "category": "Model Evaluation",
+        "tags": ["validation", "cross-validation", "evaluation"]
+      },
+      {
+        "id": "doc010",
+        "title": "Redes Neurais Convolucionais",
+        "content": "CNNs são redes neurais especializadas em processar dados com topologia de grade, como imagens. Usam convoluções para extrair features automaticamente, sendo fundamentais em visão computacional moderna e reconhecimento de imagens.",
+        "category": "Deep Learning",
+        "tags": ["CNN", "convolution", "images"]
+      }
+    ]
+  },
+  "timepoint_t2": {
+    "timestamp": "2024-07-01T00:00:00Z",
+    "label": "Time Point T'' - Evolved Collection",
+    "documents": [
+      {
+        "id": "doc001",
+        "title": "Machine Learning com Transformers",
+        "content": "Machine learning evoluiu significativamente com a introdução de transformers. Estes modelos baseados em atenção revolucionaram o processamento de sequências, superando RNNs e LSTMs em várias tarefas. A arquitetura transformer permite paralelização eficiente e captura de dependências de longo alcance.",
+        "category": "AI Fundamentals",
+        "tags": ["machine learning", "transformers", "attention"],
+        "modified": true
+      },
+      {
+        "id": "doc002",
+        "title": "Deep Learning e Redes Neurais",
+        "content": "Deep learning é uma técnica de machine learning que ensina computadores a fazer o que vem naturalmente aos humanos: aprender pelo exemplo. As redes neurais profundas usam múltiplas camadas de neurônios artificiais para processar informações complexas.",
+        "category": "Deep Learning",
+        "tags": ["deep learning", "neural networks", "AI"],
+        "modified": false
+      },
+      {
+        "id": "doc003",
+        "title": "Large Language Models e PLN",
+        "content": "Large Language Models como GPT e BERT transformaram completamente o processamento de linguagem natural. Estes modelos pré-treinados em vastos corpora de texto demonstram capacidades emergentes de raciocínio, tradução e geração de texto coerente em múltiplos domínios.",
+        "category": "NLP",
+        "tags": ["LLM", "GPT", "BERT", "NLP"],
+        "modified": true
+      },
+      {
+        "id": "doc005",
+        "title": "Algoritmos de Classificação",
+        "content": "Algoritmos de classificação são técnicas de aprendizado supervisionado que categorizam dados em classes predefinidas. Exemplos incluem árvores de decisão, SVM e redes neurais. São fundamentais para problemas de reconhecimento de padrões.",
+        "category": "Algorithms",
+        "tags": ["classification", "supervised learning", "algorithms"],
+        "modified": false
+      },
+      {
+        "id": "doc006",
+        "title": "Aprendizado por Reforço com Deep Learning",
+        "content": "Deep Reinforcement Learning combina redes neurais profundas com aprendizado por reforço, criando agentes capazes de dominar jogos complexos e controlar robôs. Algoritmos como DQN, A3C e PPO revolucionaram o campo com aplicações práticas impressionantes.",
+        "category": "Reinforcement Learning",
+        "tags": ["deep RL", "DQN", "PPO", "agents"],
+        "modified": true
+      },
+      {
+        "id": "doc007",
+        "title": "Clustering e Agrupamento",
+        "content": "Clustering é uma técnica de aprendizado não supervisionado que agrupa objetos similares. Algoritmos como K-means e DBSCAN identificam padrões naturais nos dados sem rótulos predefinidos, útil para segmentação e análise exploratória.",
+        "category": "Unsupervised Learning",
+        "tags": ["clustering", "unsupervised", "k-means"],
+        "modified": false
+      },
+      {
+        "id": "doc009",
+        "title": "Validação de Modelos",
+        "content": "Validação de modelos é crucial para avaliar o desempenho de algoritmos de machine learning. Técnicas como cross-validation, hold-out e bootstrap ajudam a estimar como o modelo generalizará para novos dados não vistos.",
+        "category": "Model Evaluation",
+        "tags": ["validation", "cross-validation", "evaluation"],
+        "modified": false
+      },
+      {
+        "id": "doc010",
+        "title": "Vision Transformers",
+        "content": "Vision Transformers (ViT) aplicam a arquitetura transformer diretamente a patches de imagens, eliminando a necessidade de convoluções. Esta abordagem alcançou resultados state-of-the-art em classificação de imagens, demonstrando que transformers podem superar CNNs tradicionais.",
+        "category": "Computer Vision",
+        "tags": ["ViT", "transformers", "vision"],
+        "modified": true
+      },
+      {
+        "id": "doc011",
+        "title": "Prompt Engineering",
+        "content": "Prompt engineering emergiu como uma disciplina crucial para otimizar a interação com Large Language Models. Técnicas como few-shot learning, chain-of-thought e instruction tuning permitem extrair o máximo potencial desses modelos sem retreinamento.",
+        "category": "LLM Techniques",
+        "tags": ["prompting", "LLM", "optimization"],
+        "new": true
+      },
+      {
+        "id": "doc012",
+        "title": "Diffusion Models",
+        "content": "Modelos de difusão revolucionaram a geração de imagens, superando GANs em qualidade e estabilidade. Baseados em processos estocásticos de ruído reverso, estes modelos geram imagens fotorrealistas e são a base de ferramentas como DALL-E e Stable Diffusion.",
+        "category": "Generative AI",
+        "tags": ["diffusion", "generation", "images"],
+        "new": true
+      },
+      {
+        "id": "doc013",
+        "title": "Federated Learning",
+        "content": "Federated learning permite treinar modelos de machine learning em dados distribuídos sem centralização. Esta abordagem preserva privacidade e reduz custos de transferência, sendo crucial para aplicações móveis e IoT onde dados sensíveis permanecem locais.",
+        "category": "Distributed ML",
+        "tags": ["federated", "privacy", "distributed"],
+        "new": true
+      }
+    ],
+    "removed_documents": ["doc004", "doc008"],
+    "added_documents": ["doc011", "doc012", "doc013"],
+    "modified_documents": ["doc001", "doc003", "doc006", "doc010"]
+  },
+  "analysis": {
+    "total_docs_t1": 10,
+    "total_docs_t2": 11,
+    "documents_removed": 2,
+    "documents_added": 3,
+    "documents_modified": 4,
+    "documents_unchanged": 4,
+    "change_rate": 0.6,
+    "evolution_summary": "The collection evolved from basic ML concepts to advanced transformer-based architectures, with emphasis on LLMs, Vision Transformers, and generative models."
+  }
+}

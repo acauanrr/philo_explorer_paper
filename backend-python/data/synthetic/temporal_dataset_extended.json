@@ -1,0 +1,316 @@
+{
+  "metadata": {
+    "name": "Extended Synthetic Temporal Dataset for Phylo Explorer",
+    "description": "Dataset sintético expandido para demonstração clara de mudanças temporais em coleções de texto",
+    "created": "2025-01-21",
+    "version": "2.0"
+  },
+  "timepoint_t1": {
+    "timestamp": "2024-01-01T00:00:00Z",
+    "label": "Time Point T1 - Original Collection",
+    "documents": [
+      {
+        "id": "ML001",
+        "title": "Fundamentos de Machine Learning",
+        "content": "Machine learning é a base da inteligência artificial moderna. Algoritmos supervisionados como regressão linear e árvores de decisão permitem previsões precisas. Support Vector Machines (SVM) são eficazes para classificação binária.",
+        "category": "Machine Learning",
+        "cluster": "A",
+        "tags": ["ML", "supervised", "basics"]
+      },
+      {
+        "id": "ML002",
+        "title": "Redes Neurais Clássicas",
+        "content": "Perceptrons multicamadas revolucionaram o aprendizado profundo. Backpropagation permite treinar redes com múltiplas camadas. RNNs processam sequências temporais eficientemente.",
+        "category": "Deep Learning",
+        "cluster": "A",
+        "tags": ["neural networks", "MLP", "RNN"]
+      },
+      {
+        "id": "ML003",
+        "title": "Processamento de Linguagem Natural Tradicional",
+        "content": "Técnicas de PLN incluem tokenização, stemming e análise sintática. Modelos de bag-of-words e TF-IDF extraem features textuais. Word2Vec introduziu embeddings densos para palavras.",
+        "category": "NLP",
+        "cluster": "B",
+        "tags": ["NLP", "traditional", "word2vec"]
+      },
+      {
+        "id": "CV001",
+        "title": "Visão Computacional com CNNs",
+        "content": "Redes convolucionais detectam features hierárquicas em imagens. Pooling reduz dimensionalidade preservando informações importantes. Transfer learning acelera treinamento em novos domínios.",
+        "category": "Computer Vision",
+        "cluster": "C",
+        "tags": ["CNN", "vision", "images"]
+      },
+      {
+        "id": "CV002",
+        "title": "Detecção de Objetos",
+        "content": "YOLO e R-CNN revolucionaram detecção em tempo real. Anchor boxes melhoram localização de objetos múltiplos. Non-maximum suppression elimina detecções duplicadas.",
+        "category": "Computer Vision",
+        "cluster": "C",
+        "tags": ["detection", "YOLO", "R-CNN"]
+      },
+      {
+        "id": "RL001",
+        "title": "Aprendizado por Reforço Básico",
+        "content": "Q-learning permite agentes aprenderem políticas ótimas. Exploration vs exploitation balance descoberta e otimização. Markov Decision Processes modelam ambientes estocásticos.",
+        "category": "Reinforcement Learning",
+        "cluster": "D",
+        "tags": ["RL", "Q-learning", "MDP"]
+      },
+      {
+        "id": "DS001",
+        "title": "Ciência de Dados Aplicada",
+        "content": "Análise exploratória revela padrões em dados complexos. Feature engineering melhora performance de modelos. Cross-validation garante generalização robusta.",
+        "category": "Data Science",
+        "cluster": "E",
+        "tags": ["data science", "EDA", "validation"]
+      },
+      {
+        "id": "DS002",
+        "title": "Big Data e Spark",
+        "content": "Apache Spark processa dados em escala massiva. RDDs permitem computação distribuída resiliente. MLlib oferece algoritmos otimizados para big data.",
+        "category": "Big Data",
+        "cluster": "E",
+        "tags": ["spark", "big data", "distributed"]
+      },
+      {
+        "id": "AUTO001",
+        "title": "AutoML e Otimização",
+        "content": "AutoML automatiza seleção de modelos e hiperparâmetros. Bayesian optimization guia busca eficiente. Neural Architecture Search descobre arquiteturas ótimas.",
+        "category": "AutoML",
+        "cluster": "F",
+        "tags": ["AutoML", "optimization", "NAS"]
+      },
+      {
+        "id": "ETH001",
+        "title": "Ética em IA",
+        "content": "Fairness em algoritmos previne discriminação sistemática. Explainability aumenta confiança em decisões automatizadas. Privacy-preserving ML protege dados sensíveis.",
+        "category": "AI Ethics",
+        "cluster": "G",
+        "tags": ["ethics", "fairness", "privacy"]
+      },
+      {
+        "id": "TIME001",
+        "title": "Séries Temporais",
+        "content": "ARIMA modela tendências e sazonalidade. Prophet automatiza previsão de séries complexas. LSTMs capturam dependências de longo prazo.",
+        "category": "Time Series",
+        "cluster": "H",
+        "tags": ["time series", "ARIMA", "forecasting"]
+      },
+      {
+        "id": "GRAPH001",
+        "title": "Graph Neural Networks",
+        "content": "GNNs processam dados estruturados em grafos. Message passing propaga informações entre nós. Graph attention networks pesam importância de vizinhos.",
+        "category": "Graph ML",
+        "cluster": "I",
+        "tags": ["GNN", "graphs", "networks"]
+      },
+      {
+        "id": "CLOUD001",
+        "title": "ML na Nuvem",
+        "content": "AWS SageMaker simplifica deploy de modelos. Google Cloud AI oferece APIs pré-treinadas. Azure ML integra com ecossistema Microsoft.",
+        "category": "Cloud ML",
+        "cluster": "J",
+        "tags": ["cloud", "deployment", "MLOps"]
+      },
+      {
+        "id": "EDGE001",
+        "title": "Edge Computing para IA",
+        "content": "TensorFlow Lite otimiza modelos para dispositivos móveis. Quantization reduz tamanho sem perder precisão. Edge TPUs aceleram inferência local.",
+        "category": "Edge AI",
+        "cluster": "K",
+        "tags": ["edge", "mobile", "optimization"]
+      },
+      {
+        "id": "BIO001",
+        "title": "Bioinformática e ML",
+        "content": "AlphaFold prediz estruturas de proteínas. Deep learning analisa sequências genômicas. ML acelera descoberta de drogas.",
+        "category": "BioML",
+        "cluster": "L",
+        "tags": ["bioinformatics", "genomics", "proteins"]
+      }
+    ]
+  },
+  "timepoint_t2": {
+    "timestamp": "2024-07-01T00:00:00Z",
+    "label": "Time Point T2 - Evolved Collection",
+    "documents": [
+      {
+        "id": "ML001",
+        "title": "Machine Learning com Transformers",
+        "content": "Transformers dominam todas as áreas de ML. Attention mechanisms substituem convoluções e recorrência. Pre-training em larga escala cria modelos fundacionais. Fine-tuning adapta para tarefas específicas.",
+        "category": "Machine Learning",
+        "cluster": "A",
+        "tags": ["ML", "transformers", "foundation"],
+        "modified": true
+      },
+      {
+        "id": "ML002",
+        "title": "Redes Neurais Clássicas",
+        "content": "Perceptrons multicamadas revolucionaram o aprendizado profundo. Backpropagation permite treinar redes com múltiplas camadas. RNNs processam sequências temporais eficientemente.",
+        "category": "Deep Learning",
+        "cluster": "A",
+        "tags": ["neural networks", "MLP", "RNN"],
+        "modified": false
+      },
+      {
+        "id": "LLM001",
+        "title": "Large Language Models",
+        "content": "GPT-4 e Claude demonstram capacidades emergentes. Chain-of-thought prompting melhora raciocínio complexo. Constitutional AI alinha modelos com valores humanos. RAG combina geração com recuperação.",
+        "category": "LLMs",
+        "cluster": "B",
+        "tags": ["LLM", "GPT", "Claude"],
+        "new": true
+      },
+      {
+        "id": "LLM002",
+        "title": "Prompt Engineering Avançado",
+        "content": "Few-shot learning elimina necessidade de fine-tuning. System prompts controlam comportamento de modelos. Prompt chaining decompõe tarefas complexas. Tree-of-thoughts explora múltiplos caminhos.",
+        "category": "LLMs",
+        "cluster": "B",
+        "tags": ["prompting", "few-shot", "engineering"],
+        "new": true
+      },
+      {
+        "id": "VIT001",
+        "title": "Vision Transformers",
+        "content": "ViT supera CNNs em classificação de imagens. CLIP conecta visão e linguagem multimodalmente. SAM segmenta qualquer objeto com prompts. DINO aprende features visuais sem supervisão.",
+        "category": "Computer Vision",
+        "cluster": "C",
+        "tags": ["ViT", "CLIP", "multimodal"],
+        "new": true
+      },
+      {
+        "id": "CV002",
+        "title": "Detecção com Transformers",
+        "content": "DETR usa transformers para detecção end-to-end. Attention visualiza relações entre objetos. Set prediction elimina pós-processamento. Panoptic segmentation unifica tarefas.",
+        "category": "Computer Vision",
+        "cluster": "C",
+        "tags": ["DETR", "detection", "transformers"],
+        "modified": true
+      },
+      {
+        "id": "DRL001",
+        "title": "Deep Reinforcement Learning",
+        "content": "PPO estabiliza treinamento de políticas. SAC combina exploração com otimização. World models aprendem dinâmica de ambientes. Multi-agent RL coordena sistemas complexos.",
+        "category": "Reinforcement Learning",
+        "cluster": "D",
+        "tags": ["DRL", "PPO", "SAC"],
+        "modified": true
+      },
+      {
+        "id": "DS001",
+        "title": "Ciência de Dados Aplicada",
+        "content": "Análise exploratória revela padrões em dados complexos. Feature engineering melhora performance de modelos. Cross-validation garante generalização robusta.",
+        "category": "Data Science",
+        "cluster": "E",
+        "tags": ["data science", "EDA", "validation"],
+        "modified": false
+      },
+      {
+        "id": "DIFF001",
+        "title": "Diffusion Models",
+        "content": "Stable Diffusion gera imagens fotorrealistas. DALL-E 3 segue prompts complexos precisamente. ControlNet adiciona controle fino à geração. Consistency models aceleram sampling.",
+        "category": "Generative AI",
+        "cluster": "F",
+        "tags": ["diffusion", "DALL-E", "generation"],
+        "new": true
+      },
+      {
+        "id": "DIFF002",
+        "title": "Video Generation",
+        "content": "Runway e Pika geram vídeos de alta qualidade. Temporal consistency mantém coerência entre frames. Motion control direciona movimento preciso. Text-to-video democratiza criação.",
+        "category": "Generative AI",
+        "cluster": "F",
+        "tags": ["video", "generation", "temporal"],
+        "new": true
+      },
+      {
+        "id": "ETH001",
+        "title": "Alignment e Segurança",
+        "content": "RLHF alinha modelos com preferências humanas. Red teaming identifica comportamentos perigosos. Constitutional training incorpora princípios éticos. Mechanistic interpretability decodifica redes.",
+        "category": "AI Safety",
+        "cluster": "G",
+        "tags": ["alignment", "safety", "RLHF"],
+        "modified": true
+      },
+      {
+        "id": "GRAPH001",
+        "title": "Graph Neural Networks",
+        "content": "GNNs processam dados estruturados em grafos. Message passing propaga informações entre nós. Graph attention networks pesam importância de vizinhos.",
+        "category": "Graph ML",
+        "cluster": "I",
+        "tags": ["GNN", "graphs", "networks"],
+        "modified": false
+      },
+      {
+        "id": "MULTI001",
+        "title": "Multimodal Learning",
+        "content": "Flamingo processa imagem e texto conjuntamente. BLIP-2 eficientemente conecta modalidades. ImageBind unifica seis modalidades sensoriais. Multimodal chains coordenam modelos especializados.",
+        "category": "Multimodal",
+        "cluster": "M",
+        "tags": ["multimodal", "Flamingo", "BLIP"],
+        "new": true
+      },
+      {
+        "id": "AGENT001",
+        "title": "AI Agents",
+        "content": "AutoGPT executa tarefas autonomamente. LangChain orquestra chains de LLMs. Function calling integra ferramentas externas. Memory systems mantêm contexto persistente.",
+        "category": "AI Agents",
+        "cluster": "N",
+        "tags": ["agents", "AutoGPT", "LangChain"],
+        "new": true
+      },
+      {
+        "id": "NEURO001",
+        "title": "Neurosymbolic AI",
+        "content": "Combinação de redes neurais com lógica simbólica. Reasoning estruturado com aprendizado flexível. Knowledge graphs melhoram interpretabilidade. Program synthesis gera código verificável.",
+        "category": "Neurosymbolic",
+        "cluster": "O",
+        "tags": ["neurosymbolic", "reasoning", "logic"],
+        "new": true
+      },
+      {
+        "id": "BIO001",
+        "title": "BioML com Transformers",
+        "content": "ESMFold supera AlphaFold em velocidade. Protein language models entendem sequências. DNA transformers predizem expressão gênica. Drug discovery acelera com modelos generativos.",
+        "category": "BioML",
+        "cluster": "L",
+        "tags": ["bio", "proteins", "transformers"],
+        "modified": true
+      },
+      {
+        "id": "QUANTUM001",
+        "title": "Quantum Machine Learning",
+        "content": "Algoritmos quânticos aceleram treinamento. Quantum kernels expandem espaço de features. Variational circuits otimizam em hardware NISQ. Quantum advantage em problemas específicos.",
+        "category": "Quantum ML",
+        "cluster": "P",
+        "tags": ["quantum", "QML", "NISQ"],
+        "new": true
+      },
+      {
+        "id": "FED001",
+        "title": "Federated Learning",
+        "content": "Treinamento distribuído preserva privacidade. Differential privacy protege dados individuais. Secure aggregation previne ataques. Cross-silo e cross-device scenarios.",
+        "category": "Federated",
+        "cluster": "Q",
+        "tags": ["federated", "privacy", "distributed"],
+        "new": true
+      }
+    ],
+    "removed_documents": ["ML003", "CV001", "RL001", "DS002", "AUTO001", "TIME001", "CLOUD001", "EDGE001"],
+    "added_documents": ["LLM001", "LLM002", "VIT001", "DIFF001", "DIFF002", "MULTI001", "AGENT001", "NEURO001", "QUANTUM001", "FED001"],
+    "modified_documents": ["ML001", "CV002", "DRL001", "ETH001", "BIO001"],
+    "unchanged_documents": ["ML002", "DS001", "GRAPH001"]
+  },
+  "analysis": {
+    "total_docs_t1": 15,
+    "total_docs_t2": 18,
+    "documents_removed": 8,
+    "documents_added": 10,
+    "documents_modified": 5,
+    "documents_unchanged": 3,
+    "change_rate": 0.8,
+    "evolution_summary": "Major shift from traditional ML to transformer-based architectures, LLMs, and generative AI. Strong focus on multimodal and safety."
+  }
+}
