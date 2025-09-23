@@ -12,6 +12,11 @@ import {
   VStack,
   useBreakpointValue,
   useColorModeValue,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
 } from "@chakra-ui/react";
 import { TbArrowsMinimize, TbArrowsMaximize } from "react-icons/tb";
 import Navbar from "../components/layout/Navbar";
@@ -20,8 +25,12 @@ import EnhancedPhyloExplorer from "../components/visualizations/PhyloExplorer/En
 import WordCloudVis from "../components/visualizations/WordCloudVis";
 import DetailsPanel from "../components/layout/DetailsPanel";
 import ThemeRiver from "../components/visualizations/ThemeRiver";
+import { PhyloProvider } from "../src/context/PhyloContext";
+import InspectorPanel from "../src/components/InspectorPanel";
+import AggregatedErrorView from "../src/components/quality/AggregatedErrorView";
+import MissingNeighborsSingle from "../src/components/quality/MissingNeighborsSingle";
 
-export default function Home() {
+function HomeContent() {
   const colorsBar = ["#184282", "#18294C", "gray.200"];
   const [show, setShow] = useState(true);
   const borderColor = useColorModeValue("gray.200", "gray.600");
@@ -109,7 +118,28 @@ export default function Home() {
             </Tooltip>
           </HStack>
           <Box flex="1" w="full" h="full" overflow="hidden">
-            <EnhancedPhyloExplorer show={show} />
+            <Tabs h="full" display="flex" flexDirection="column">
+              <TabList bg="gray.50" borderBottom="1px solid" borderColor={borderColor}>
+                <Tab>Phylo Tree</Tab>
+                <Tab>Quality Inspector</Tab>
+                <Tab>Aggregated Errors</Tab>
+                <Tab>Missing Neighbors</Tab>
+              </TabList>
+              <TabPanels flex="1" overflow="hidden">
+                <TabPanel h="full" p={0}>
+                  <EnhancedPhyloExplorer show={show} />
+                </TabPanel>
+                <TabPanel h="full" p={0}>
+                  <InspectorPanel />
+                </TabPanel>
+                <TabPanel h="full" p={0}>
+                  <AggregatedErrorView width={800} height={600} />
+                </TabPanel>
+                <TabPanel h="full" p={0}>
+                  <MissingNeighborsSingle width={800} height={600} />
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
           </Box>
         </VStack>
       </GridItem>
@@ -182,5 +212,13 @@ export default function Home() {
         </GridItem>
       )}
     </Grid>
+  );
+}
+
+export default function Home() {
+  return (
+    <PhyloProvider>
+      <HomeContent />
+    </PhyloProvider>
   );
 }

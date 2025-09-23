@@ -68,9 +68,6 @@ tmp/
 temp/
 *.tmp
 
-# Docker
-*.pid
-
 # Models cache (ML)
 models_cache/
 
@@ -92,15 +89,24 @@ models_cache/
 .npm
 
 # Database
-# db/
 *.sqlite
 *.db
 
-# Submodules specific
-hf-space/
+# Development artifacts
+*.flag
+backend-python.log
+api-gateway.log
+frontend.log
 
-# Local development files
+# Old/Obsolete files
+README_OLD.md
+README_DEV.md
 LOCAL_DEV_SETUP.md
-docker-compose.yml
+QUICKSTART.md
+main_simple.py
+
+# Docker (obsolete but kept for reference)
+docker-compose*.yml
+Dockerfile*
 start-services.sh
 stop-services.sh

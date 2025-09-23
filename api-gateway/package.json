@@ -1,0 +1,60 @@
+{
+  "name": "phylo-api-gateway",
+  "version": "2.0.0",
+  "description": "API Gateway for Phylo Explorer",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "jest --coverage",
+    "test:e2e": "jest --testMatch='**/*.test.ts' --coverage",
+    "test:cache": "jest tests/e2e/cache.test.ts --verbose",
+    "test:failover": "jest tests/e2e/redis-failover.test.ts --verbose",
+    "test:watch": "jest --watch",
+    "lint": "eslint . --ext .js,.ts",
+    "lint:fix": "eslint . --ext .js,.ts --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "@gradio/client": "^1.19.0",
+    "axios": "^1.12.2",
+    "bullmq": "^5.0.0",
+    "cheerio": "^1.0.0",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.8.0",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "opencage-api-client": "^2.0.0",
+    "papaparse": "^5.5.3",
+    "wink-eng-lite-web-model": "^1.8.1",
+    "wink-nlp": "^2.4.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.11",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.10.5",
+    "@types/supertest": "^6.0.2",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.10",
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.1.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

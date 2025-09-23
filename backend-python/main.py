@@ -16,11 +16,6 @@ import numpy as np
 from dotenv import load_dotenv
 import logging
 
-# Import custom modules
-from processing.text_preprocessor import TextPreprocessor
-from services.embedding_service import EmbeddingService
-from routes import dataset_routes
-
 # Load environment variables
 load_dotenv()
 
@@ -30,6 +25,21 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Import custom modules
+from processing.text_preprocessor import TextPreprocessor
+from services import EmbeddingService
+from routes import dataset_routes
+
+# Import projection quality modules
+from app.schemas import (
+    ProjectionErrorsRequest, ProjectionErrorsResponse,
+    FalseNeighborsRequest, FalseNeighborsResponse,
+    MissingNeighborsRequest, MissingNeighborsResponse,
+    GroupAnalysisRequest, GroupAnalysisResponse,
+    ProjectionCompareRequest, ProjectionCompareResponse
+)
+from app.projection_quality import ProjectionQualityMetrics
 
 # Global services
 embedding_service: Optional[EmbeddingService] = None
@@ -465,16 +475,206 @@ async def full_pipeline(request: FullPipelineRequest):
         logger.error(f"Pipeline execution failed: {e}")
         raise HTTPException(status_code=500, detail="Pipeline execution failed")
 
-# Error handlers
-@app.exception_handler(404)
-async def not_found_handler(request, exc):
-    """Handle 404 errors"""
-    return {"error": "Resource not found", "status": 404}
+# ============= Projection Quality Endpoints =============
 
-@app.exception_handler(500)
-async def internal_error_handler(request, exc):
-    """Handle 500 errors"""
-    return {"error": "Internal server error", "status": 500}
+@app.post("/api/v1/projection/errors", response_model=ProjectionErrorsResponse)
+async def compute_projection_errors(request: ProjectionErrorsRequest):
+    """
+    Compute normalized projection errors matrix e_ij ∈ [-1, 1]
+
+    Formula: e_ij = (d_low_ij - d_high_ij) / max(d_high_ij, d_low_ij)
+
+    - Positive values indicate expansion (distances increased)
+    - Negative values indicate compression (distances decreased)
+    - Values close to 0 indicate good preservation
+    """
+    try:
+        # Convert to numpy arrays
+        D_high = np.array(request.D_high)
+        D_low = np.array(request.D_low)
+
+        # Validate dimensions
+        if D_high.shape != D_low.shape:
+            raise ValueError("Distance matrices must have same dimensions")
+
+        if D_high.shape[0] != D_high.shape[1]:
+            raise ValueError("Distance matrices must be square")
+
+        # Compute errors
+        errors, stats = ProjectionQualityMetrics.compute_projection_errors(D_high, D_low)
+
+        return ProjectionErrorsResponse(
+            errors=errors.tolist(),
+            stats=stats
+        )
+
+    except ValueError as e:
+        logger.error(f"Invalid input for projection errors: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error computing projection errors: {e}")
+        raise HTTPException(status_code=500, detail="Failed to compute projection errors")
+
+@app.post("/api/v1/projection/false_neighbors", response_model=FalseNeighborsResponse)
+async def find_false_neighbors(request: FalseNeighborsRequest):
+    """
+    Identify false neighbors: points that are neighbors in low-D but not in high-D
+
+    Also computes Delaunay triangulation for visualization of 2D projections.
+    """
+    try:
+        # Convert to numpy arrays
+        D_high = np.array(request.D_high)
+        D_low = np.array(request.D_low)
+        points_2d = np.array(request.points_2d)
+
+        # Validate
+        if D_high.shape != D_low.shape:
+            raise ValueError("Distance matrices must have same dimensions")
+
+        if points_2d.shape[0] != D_high.shape[0]:
+            raise ValueError("Number of 2D points must match matrix dimension")
+
+        if points_2d.shape[1] != 2:
+            raise ValueError("Points must be 2D coordinates")
+
+        # Compute false neighbors
+        false_neighbors, delaunay_edges, metrics = ProjectionQualityMetrics.compute_false_neighbors(
+            D_high, D_low, points_2d, request.k_neighbors
+        )
+
+        return FalseNeighborsResponse(
+            false_neighbors=false_neighbors,
+            delaunay_edges=delaunay_edges,
+            metrics=metrics
+        )
+
+    except ValueError as e:
+        logger.error(f"Invalid input for false neighbors: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error computing false neighbors: {e}")
+        raise HTTPException(status_code=500, detail="Failed to compute false neighbors")
+
+@app.post("/api/v1/projection/missing_neighbors", response_model=MissingNeighborsResponse)
+async def compute_missing_neighbors(request: MissingNeighborsRequest):
+    """
+    Build graph of missing neighbors: points that are neighbors in high-D but far in low-D
+
+    Useful for understanding which relationships are lost in the projection.
+    """
+    try:
+        # Convert to numpy arrays
+        D_high = np.array(request.D_high)
+        D_low = np.array(request.D_low)
+
+        # Validate
+        if D_high.shape != D_low.shape:
+            raise ValueError("Distance matrices must have same dimensions")
+
+        # Compute missing neighbors graph
+        graph, missing_count, stats = ProjectionQualityMetrics.compute_missing_neighbors_graph(
+            D_high, D_low, request.k_neighbors, request.threshold
+        )
+
+        return MissingNeighborsResponse(
+            graph=graph,
+            missing_count=missing_count,
+            stats=stats
+        )
+
+    except ValueError as e:
+        logger.error(f"Invalid input for missing neighbors: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error computing missing neighbors: {e}")
+        raise HTTPException(status_code=500, detail="Failed to compute missing neighbors")
+
+@app.post("/api/v1/projection/group_analysis", response_model=GroupAnalysisResponse)
+async def analyze_projection_groups(request: GroupAnalysisRequest):
+    """
+    Analyze projection quality per group/cluster
+
+    Computes cohesion, separation, and confusion matrix for grouped data.
+    """
+    try:
+        # Convert to numpy arrays
+        D_high = np.array(request.D_high)
+        D_low = np.array(request.D_low)
+        groups = np.array(request.groups)
+
+        # Validate
+        if D_high.shape != D_low.shape:
+            raise ValueError("Distance matrices must have same dimensions")
+
+        if len(groups) != D_high.shape[0]:
+            raise ValueError("Number of group labels must match matrix dimension")
+
+        # Analyze groups
+        group_metrics, confusion_matrix, global_metrics = ProjectionQualityMetrics.analyze_groups(
+            D_high, D_low, groups
+        )
+
+        # Convert to response format
+        from app.schemas import GroupMetrics
+        groups_response = [GroupMetrics(**metrics) for metrics in group_metrics]
+
+        return GroupAnalysisResponse(
+            groups=groups_response,
+            confusion_matrix=confusion_matrix,
+            global_metrics=global_metrics
+        )
+
+    except ValueError as e:
+        logger.error(f"Invalid input for group analysis: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error in group analysis: {e}")
+        raise HTTPException(status_code=500, detail="Failed to analyze groups")
+
+@app.post("/api/v1/projection/compare", response_model=ProjectionCompareResponse)
+async def compare_projections(request: ProjectionCompareRequest):
+    """
+    Compare multiple projection methods using various quality metrics
+
+    Computes stress, trustworthiness, continuity, and other metrics for each projection.
+    Returns rankings and identifies the best projection.
+    """
+    try:
+        # Convert to numpy arrays
+        D_high = np.array(request.D_high)
+
+        # Convert projection dictionaries
+        projections = {}
+        for name, D_low_list in request.projections.items():
+            D_low = np.array(D_low_list)
+            if D_high.shape != D_low.shape:
+                raise ValueError(f"Projection '{name}' has incompatible dimensions")
+            projections[name] = D_low
+
+        # Compare projections
+        projection_metrics, rankings, best_projection, comparison_matrix = \
+            ProjectionQualityMetrics.compare_projections(D_high, projections)
+
+        # Convert to response format
+        from app.schemas import ProjectionMetrics
+        projections_response = [ProjectionMetrics(**metrics) for metrics in projection_metrics]
+
+        return ProjectionCompareResponse(
+            projections=projections_response,
+            rankings=rankings,
+            best_projection=best_projection,
+            comparison_matrix=comparison_matrix
+        )
+
+    except ValueError as e:
+        logger.error(f"Invalid input for projection comparison: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error comparing projections: {e}")
+        raise HTTPException(status_code=500, detail="Failed to compare projections")
+
+# Error handlers removed - causing conflicts with FastAPI defaults
 
 # Main entry point
 if __name__ == "__main__":

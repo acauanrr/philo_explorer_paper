@@ -650,4 +650,92 @@ router.post('/debug/pipeline-test', async (req, res) => {
   }
 });
 
+// Import quality routes - simplified version for testing
+router.post('/quality/errors', async (req, res) => {
+  try {
+    const { high_dim_points, low_dim_points, robust_scaling = false } = req.body;
+
+    if (!high_dim_points || !low_dim_points) {
+      return res.status(400).json({
+        error: 'Missing required fields: high_dim_points, low_dim_points'
+      });
+    }
+
+    // Import Redis functions dynamically
+    const { generateCacheKey, getCacheCompressed, setCacheMultiple, CacheKeys } = await import('../redis.js');
+    const pythonClient = (await import('../services/pythonClient.js')).default;
+
+    // Generate cache key
+    const cacheKey = generateCacheKey(high_dim_points, low_dim_points, robust_scaling);
+    const errorMatrixKey = CacheKeys.ERROR_MATRIX(cacheKey);
+    const aggregatedKey = CacheKeys.AGGREGATED(cacheKey);
+
+    // Check cache
+    const [cachedErrors, cachedAggregated] = await Promise.all([
+      getCacheCompressed(errorMatrixKey),
+      getCacheCompressed(aggregatedKey)
+    ]);
+
+    if (cachedErrors && cachedAggregated) {
+      console.log(`[Cache HIT] Using cached data for key: ${cacheKey}`);
+      return res
+        .set('X-Cache', 'HIT')
+        .json({
+          cacheKey,
+          aggregated_errors: cachedAggregated,
+          stats: cachedErrors.stats,
+          cached: true
+        });
+    }
+
+    console.log(`[Cache MISS] Computing errors for key: ${cacheKey}`);
+
+    // Call Python API
+    const errorResponse = await pythonClient.computeProjectionErrors(
+      high_dim_points,
+      low_dim_points
+    );
+
+    // Aggregate errors
+    let aggregatedErrors = pythonClient.aggregateErrors(errorResponse.errors);
+
+    if (robust_scaling) {
+      aggregatedErrors = pythonClient.robustScale(aggregatedErrors);
+    }
+
+    // Store in cache
+    await setCacheMultiple([
+      {
+        key: errorMatrixKey,
+        value: {
+          errors: errorResponse.errors,
+          stats: errorResponse.stats
+        },
+        ttl: 24 * 60 * 60
+      },
+      {
+        key: aggregatedKey,
+        value: aggregatedErrors,
+        ttl: 24 * 60 * 60
+      }
+    ]);
+
+    return res
+      .set('X-Cache', 'MISS')
+      .json({
+        cacheKey,
+        aggregated_errors: aggregatedErrors,
+        stats: errorResponse.stats,
+        cached: false
+      });
+
+  } catch (error) {
+    console.error('Error computing projection errors:', error);
+    return res.status(500).json({
+      error: 'Failed to compute projection errors',
+      message: error.message
+    });
+  }
+});
+
 export default router;
