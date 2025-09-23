@@ -1,294 +1,391 @@
-# 🌳 Phylo Explorer Paper - Sistema de Análise Filogenética de Documentos
+# 🌳 Phylo Explorer - Advanced Phylogenetic Document Analysis System
 
-Sistema web interativo para análise filogenética de coleções de documentos, permitindo visualização de relações evolutivas entre textos através de árvores filogenéticas, word clouds e análises temporais.
+A sophisticated multi-tier web application for phylogenetic analysis of document collections, featuring interactive tree visualizations, NLP-powered text analysis, and real-time geospatial mapping.
 
-## 📊 Arquitetura do Sistema
+## 📊 System Architecture
+
+The system employs a microservices architecture with three core components working in harmony:
 
 ```
-┌─────────────────────────────────────────┐
-│           Frontend (Next.js)            │
-│   - Interface de usuário responsiva     │
-│   - Visualizações D3.js interativas     │
-│   - Upload e gerenciamento de arquivos  │
-└─────────────────────────────────────────┘
+┌────────────────────────────────────────────────┐
+│         Frontend (Next.js/React)               │
+│   Interactive Visualizations & User Interface  │
+│              Port: 3000                        │
+└────────────────────────────────────────────────┘
                       │
                       ▼
-┌─────────────────────────────────────────┐
-│         Backend (Node.js/Express)       │
-│   - API REST para processamento         │
-│   - Integração com serviços ML          │
-│   - Geração de árvores filogenéticas    │
-└─────────────────────────────────────────┘
+┌────────────────────────────────────────────────┐
+│      API Gateway (Node.js/Express)             │
+│    Service Orchestration & Web Scraping        │
+│              Port: 4000                        │
+└────────────────────────────────────────────────┘
+                      │
+                      ▼
+┌────────────────────────────────────────────────┐
+│       ML Service (Python/FastAPI)              │
+│    Text Embeddings & Tree Reconstruction       │
+│              Port: 8001                        │
+└────────────────────────────────────────────────┘
 ```
 
-## 🚀 Componentes do Sistema
+## 🚀 System Components
 
-### Frontend (Next.js)
-- **Porta**: 3000
-- **Tecnologias**: React 18, Next.js 14, Chakra UI 2.0, D3.js v7
-- **Principais Funcionalidades**:
-  - Visualização interativa de árvores filogenéticas
-  - Word cloud dinâmico dos termos mais frequentes
-  - Timeline/River chart para análise temporal
-  - Upload e processamento de arquivos CSV/JSON
-  - Interface responsiva e moderna
+### Frontend (Next.js/React)
+- **Port**: 3000
+- **Framework**: Next.js 14.2.32 with React 18.2.0
+- **UI Library**: Chakra UI 2.7.1
+- **Visualization**: D3.js 7.8.5, D3-Cloud, D3-Geo
+- **Key Features**:
+  - **Interactive Phylogenetic Tree**: Zoom, pan, and node selection with D3.js
+  - **Word Cloud Visualization**: Dynamic term frequency analysis
+  - **Geographic Mapping**: Real-time location data with coordinate mapping
+  - **Theme River**: Temporal evolution visualization
+  - **Unified State Management**: React Context API for synchronized updates
+  - **Responsive Design**: Adaptive layouts for all screen sizes
 
-### Backend (Node.js/Express)
-- **Porta**: 4000
-- **Tecnologias**: Node.js 18+, Express 4, Axios
-- **Principais Funcionalidades**:
-  - API RESTful para comunicação frontend-backend
-  - Processamento de dados e geração de árvores Newick
-  - Integração com serviços de ML (Gradio/HuggingFace)
-  - Análise de similaridade textual
-  - Geolocalização e busca web integrada
+### Backend Node.js (Express API Gateway)
+- **Port**: 4000
+- **Framework**: Express 5.1.0 with ES6 modules
+- **Key Technologies**:
+  - **Gradio Client**: HuggingFace Space integration
+  - **Cheerio**: Web scraping and HTML parsing
+  - **Wink-NLP**: Natural language processing
+  - **OpenCage API**: Geocoding services
+  - **Multer**: File upload handling
+- **Core Responsibilities**:
+  - API request orchestration
+  - Web content extraction and scraping
+  - Location entity recognition and geocoding
+  - Service health monitoring
+  - CORS and security management
 
-## 📁 Estrutura do Projeto
+### Backend Python (FastAPI ML Service)
+- **Port**: 8001
+- **Framework**: FastAPI with async/await
+- **ML Models**: Sentence Transformers (multilingual-mpnet-base-v2)
+- **Key Technologies**:
+  - **NumPy/SciPy**: Scientific computing
+  - **Custom NLP Pipeline**: Text preprocessing
+  - **Neighbor Joining**: Tree reconstruction algorithm
+- **Core Capabilities**:
+  - Semantic text embedding generation
+  - Distance matrix computation (Cosine/Euclidean)
+  - Phylogenetic tree reconstruction
+  - Batch processing optimization
+  - Model caching for performance
+
+## 📁 Project Structure
 
 ```
 philo_explorer_paper/
 │
-├── frontend/                  # Aplicação Frontend
-│   ├── app/                  # App directory (Next.js 14)
-│   │   ├── layout.jsx       # Layout principal
-│   │   ├── page.jsx         # Página inicial
-│   │   └── providers.jsx    # Providers React
-│   ├── components/          # Componentes React
-│   │   ├── layout/         # Componentes de layout
-│   │   ├── visualizations/ # Visualizações D3.js
-│   │   └── _ui/           # Componentes UI reutilizáveis
-│   ├── public/             # Assets públicos
-│   │   └── datasets/       # Datasets de exemplo
-│   └── package.json        # Dependências frontend
+├── frontend/                    # Next.js Frontend Application
+│   ├── app/                    # App Router (Next.js 14)
+│   │   ├── layout.jsx         # Root layout
+│   │   ├── page.jsx           # Main page
+│   │   └── providers.jsx      # React providers
+│   ├── components/            # React components
+│   │   ├── layout/           # Layout components
+│   │   │   ├── Navbar.jsx
+│   │   │   └── DetailsPanel.jsx
+│   │   ├── visualizations/   # D3.js visualizations
+│   │   │   ├── PhyloExplorer/
+│   │   │   ├── WordCloudVis.jsx
+│   │   │   └── ThemeRiver.jsx
+│   │   └── _ui/             # Reusable UI components
+│   ├── contexts/            # React contexts
+│   │   └── PhyloContext.js
+│   ├── public/             # Static assets
+│   │   └── datasets/       # Sample datasets
+│   └── package.json
 │
-├── backend/                  # Aplicação Backend
-│   ├── src/                 # Código fonte
-│   │   ├── routes/         # Rotas da API
-│   │   └── services/       # Serviços de negócio
-│   ├── config/             # Configurações
-│   ├── middleware/         # Middlewares Express
-│   └── package.json        # Dependências backend
+├── backend/                    # Node.js Backend Application
+│   ├── src/                   # Source code
+│   │   ├── routes/           # API routes
+│   │   │   └── phyloRoutes.js
+│   │   └── services/         # Business logic
+│   │       ├── mlService.js
+│   │       ├── webSearchService.js
+│   │       └── geolocationService.js
+│   ├── api/                  # API endpoints
+│   │   └── routes/
+│   │       └── upload.routes.js
+│   ├── middleware/           # Express middleware
+│   ├── config/              # Configuration
+│   ├── index.js            # Entry point
+│   └── package.json
 │
-├── .gitignore              # Arquivos ignorados pelo Git
-├── .env.example            # Exemplo de variáveis de ambiente
-└── README.md               # Este arquivo
+├── backend-python/            # Python ML Service
+│   ├── algorithms/          # Scientific algorithms
+│   │   └── neighbor_joining.py
+│   ├── processing/         # Text processing
+│   │   └── text_preprocessor.py
+│   ├── services/          # ML services
+│   │   └── embedding_service.py
+│   ├── routes/           # API routes
+│   │   ├── dataset_routes.py
+│   │   └── evolution_routes.py
+│   ├── main.py          # FastAPI application
+│   └── requirements.txt
+│
+├── docs/                     # Documentation
+│   ├── report.md           # System architecture report
+│   └── diagram.mmd         # Architecture diagram
+│
+├── docker-compose.yml       # Docker orchestration
+├── .env.example            # Environment variables template
+└── README.md              # This file
 ```
 
-## 🚀 Instalação e Execução
+## 🚀 Installation & Setup
 
-### Pré-requisitos
-- Node.js 18+ e npm
+### Prerequisites
+- Node.js 18+ and npm 9+
+- Python 3.8+
 - Git
+- Docker (optional, for containerized deployment)
 
-### Instalação
+### Quick Start
 
-1. **Clone o repositório**
+#### 1. Clone the Repository
 ```bash
 git clone https://github.com/acauanrr/philo_explorer_paper.git
 cd philo_explorer_paper
 ```
 
-2. **Instale as dependências do Backend**
+#### 2. Backend Node.js Setup
 ```bash
 cd backend
 npm install
-```
-
-3. **Instale as dependências do Frontend**
-```bash
-cd ../frontend
-npm install
-```
-
-### Execução
-
-1. **Inicie o Backend** (em um terminal)
-```bash
-cd backend
+cp .env.example .env
+# Edit .env with your configuration
 npm run dev
-# Backend rodando em http://localhost:4000
+# Backend running at http://localhost:4000
 ```
 
-2. **Inicie o Frontend** (em outro terminal)
+#### 3. Backend Python Setup
+```bash
+cd backend-python
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python main.py
+# ML Service running at http://localhost:8001
+```
+
+#### 4. Frontend Setup
 ```bash
 cd frontend
+npm install
 npm run dev
-# Frontend rodando em http://localhost:3000
+# Frontend running at http://localhost:3000
 ```
 
-3. **Acesse a aplicação**
-   - Abra o navegador em http://localhost:3000
+#### 5. Access the Application
+Open your browser at http://localhost:3000
 
-## 🔄 Funcionalidades Principais
+### Docker Deployment
 
-### Visualizações Interativas
-- **Árvore Filogenética**: Visualização hierárquica de relações entre documentos
-- **Word Cloud**: Nuvem de palavras com termos mais frequentes
-- **Timeline/River**: Análise temporal da evolução dos documentos
-- **Coordenação**: Todas as visualizações se atualizam sincronizadamente
+For production deployment using Docker:
 
-### Processamento de Dados
-- Upload de arquivos CSV e JSON
-- Análise de similaridade textual usando TF-IDF
-- Geração de árvores filogenéticas com algoritmo Neighbor-Joining
-- Processamento de linguagem natural para extração de features
+```bash
+# Build and start all services
+docker-compose up -d
 
-## 📡 API Endpoints
+# Services will be available at:
+# - Frontend: http://localhost:3000
+# - Node.js Backend: http://localhost:4000
+# - Python Backend: http://localhost:8001
+```
 
-### Backend (Porto 4000)
-- `GET /health` - Verificação de saúde do serviço
-- `POST /api/phylo/generate-tree` - Gerar árvore filogenética
-- `POST /api/phylo/analyze` - Analisar documentos
-- `GET /api/phylo/search-node` - Buscar informações de nós
-- `POST /api/phylo/ml-service` - Integração com serviços ML
+## 📡 API Documentation
 
-## 🛠️ Tecnologias Utilizadas
+### Node.js Backend Endpoints (Port 4000)
 
-### Frontend
-- **Next.js 14**: Framework React com App Router
-- **React 18**: Biblioteca UI com hooks modernos
-- **Chakra UI 2.0**: Sistema de design components
-- **D3.js v7**: Visualizações de dados interativas
-- **Axios**: Cliente HTTP para API calls
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Service health check |
+| `/api/phylo/generate-tree` | POST | Generate phylogenetic tree from texts |
+| `/api/phylo/search` | POST | Search and extract node information |
+| `/api/phylo/health` | GET | ML service status |
+| `/upload/file` | POST | Upload and process files |
+| `/api/phylo/debug/config` | GET | View configuration (debug) |
+| `/api/phylo/debug/services` | GET | Test service connectivity |
+| `/api/phylo/debug/pipeline-test` | POST | Test complete pipeline |
 
-### Backend
-- **Node.js**: Runtime JavaScript server-side
-- **Express 4**: Framework web minimalista
-- **Gradio Client**: Integração com modelos ML
-- **Cors**: Habilitação de CORS
-- **Dotenv**: Gerenciamento de variáveis de ambiente
+### Python Backend Endpoints (Port 8001)
 
-## ⚙️ Configuração
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Service health with ML model status |
+| `/api/v1/distancematrix` | POST | Generate distance matrix from documents |
+| `/api/v1/embeddings` | POST | Generate text embeddings |
+| `/api/v1/tree/reconstruct` | POST | Reconstruct phylogenetic tree |
+| `/api/v1/pipeline/full` | POST | Complete pipeline execution |
+| `/api/v1/evolution/analyze` | POST | Analyze term evolution |
 
-### Variáveis de Ambiente
+## 🔄 Key Features
 
-Crie um arquivo `.env` na raiz do projeto backend:
+### Data Processing Pipeline
+1. **Text Input** → Upload files (CSV, JSON, TXT) or paste text
+2. **Preprocessing** → Clean and normalize text data
+3. **Embedding Generation** → Create semantic vector representations
+4. **Distance Calculation** → Compute similarity metrics
+5. **Tree Reconstruction** → Build phylogenetic tree using Neighbor Joining
+6. **Visualization** → Render interactive D3.js visualizations
 
+### Interactive Visualizations
+- **Phylogenetic Tree**: Explore hierarchical relationships with zoom/pan
+- **Word Cloud**: Analyze term frequencies and importance
+- **Geographic Map**: Visualize location-based data
+- **Theme River**: Track temporal evolution of themes
+- **Synchronized Selection**: Click any element to update all views
+
+### Advanced Features
+- **Named Entity Recognition (NER)**: Extract locations, people, organizations
+- **Geocoding**: Convert location names to coordinates
+- **Web Scraping**: Enrich nodes with external data
+- **Multilingual Support**: Process documents in multiple languages
+- **Real-time Updates**: Live visualization updates
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+#### Backend Node.js (.env)
 ```env
 NODE_ENV=development
 PORT=4000
 CORS_ORIGIN=http://localhost:3000
-ML_SERVICE_URL=https://your-ml-service.hf.space
+ML_SERVICE_URL=http://localhost:8001
+ML_SERVICE_HF_URL=https://your-space.hf.space
+OPENCAGE_API_KEY=your_api_key_here
 ```
 
-Crie um arquivo `.env.local` na raiz do projeto frontend:
+#### Backend Python (.env)
+```env
+ENVIRONMENT=development
+PORT=8001
+EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+CACHE_DIR=./models_cache
+```
 
+#### Frontend (.env.local)
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_PYTHON_API_URL=http://localhost:8001
 ```
 
-## 📊 Uso da Aplicação
+## 📊 Sample Datasets
 
-1. **Acesse a aplicação** em http://localhost:3000
+The application includes several sample datasets for testing:
 
-2. **Faça upload de um arquivo**:
-   - Use os datasets de exemplo em `frontend/public/datasets/`
-   - Formatos suportados: CSV, JSON
+### CSV Files
+- `bbc_news_sample.csv`: BBC news articles
+- `fake_news_sample.csv`: Fake news detection dataset
 
-3. **Explore as visualizações**:
-   - Navegue pela árvore filogenética
-   - Clique nos nós para ver detalhes
-   - Use o word cloud para análise de termos
-   - Visualize a evolução temporal no timeline
+### JSON Files
+- `News_Category_Dataset_sample.json`: Categorized news articles
 
-4. **Interaja com os controles**:
-   - Ajuste o zoom e rotação da árvore
-   - Filtre por período temporal
-   - Selecione diferentes métricas de análise
+### Newick Trees
+- `articles_n_25.txt`: Pre-computed tree of 25 articles
+- `news.txt`: News category tree
 
 ## 🐛 Troubleshooting
 
-### Problemas com Submódulos Git
-
-Se você teve problemas com submódulos não inicializados:
-
-1. **Remova configurações de submódulo antigas**:
+### Port Already in Use
 ```bash
-git rm --cached backend frontend
-rm -rf backend/.git frontend/.git
+# Check process using port
+lsof -i :4000  # or :3000, :8001
+# Kill process
+kill -9 <PID>
 ```
 
-2. **Adicione os diretórios como parte normal do repositório**:
-```bash
-git add .
-git commit -m "Converter submódulos em diretórios normais"
-git push
-```
+### CORS Errors
+1. Verify backend is running on correct port
+2. Check environment variables
+3. Restart all services
 
-### Porta já em uso
+### ML Model Download Issues
+The first run may take time to download ML models (~400MB). Ensure stable internet connection.
 
-Se a porta estiver ocupada:
-```bash
-# Verificar processo usando a porta
-lsof -i :4000  # ou :3000
-# Finalizar o processo
-kill -9 PID
-```
+### Memory Issues
+Python backend requires ~2-4GB RAM for ML models. Increase Docker memory limits if needed.
 
-### Erro de CORS
+## 🤝 Contributing
 
-Se houver erro de CORS entre frontend e backend:
-1. Verifique se o backend está rodando na porta correta (4000)
-2. Confirme as variáveis de ambiente no `.env`
-3. Reinicie ambos os serviços
+We welcome contributions! Please follow these steps:
 
-### Dependências não instaladas
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-Se houver erro de módulos não encontrados:
-```bash
-# Para o backend
-cd backend
-rm -rf node_modules package-lock.json
-npm install
+## 📚 Documentation
 
-# Para o frontend
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-```
+- [System Architecture Report](docs/report.md) - Detailed technical documentation
+- [Architecture Diagram](docs/diagram.mmd) - Visual system overview
+- [API Documentation](#-api-documentation) - Endpoint reference
 
+## 🛠️ Technology Stack
 
-## 📚 Datasets de Exemplo
+### Frontend
+- Next.js 14.2.32
+- React 18.2.0
+- Chakra UI 2.7.1
+- D3.js 7.8.5
+- Axios 1.12.2
 
-A aplicação inclui datasets de exemplo para teste:
+### Backend Node.js
+- Express 5.1.0
+- Gradio Client 1.19.0
+- Cheerio 1.0.0
+- Wink-NLP 2.4.0
+- OpenCage API Client 2.0.0
 
-- `frontend/public/datasets/csv/`: Arquivos CSV de exemplo
-  - `bbc_news_sample.csv`: Amostra de notícias da BBC
-  - `fake_news_sample.csv`: Dataset de detecção de fake news
+### Backend Python
+- FastAPI
+- Sentence Transformers
+- NumPy
+- SciPy
+- Pydantic
 
-- `frontend/public/datasets/json/`: Arquivos JSON de exemplo
-  - `News_Category_Dataset_sample.json`: Categorias de notícias
+### DevOps
+- Docker & Docker Compose
+- Nginx (reverse proxy)
+- Redis (caching)
 
-- `frontend/public/datasets/newicks/`: Árvores Newick pré-processadas
-  - `articles_n_25.txt`: Árvore de 25 artigos
-  - `news.txt`: Árvore de notícias
+## 📝 License
 
-## 🤝 Contribuindo
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Contribuições são bem-vindas! Sinta-se à vontade para:
-
-1. Fazer fork do projeto
-2. Criar uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abrir um Pull Request
-
-## 📝 Licença
-
-Este projeto está licenciado sob a Licença MIT - veja o arquivo LICENSE para detalhes.
-
-## 👤 Autor
+## 👥 Team
 
 **Acauan R. Ribeiro**
 - GitHub: [@acauanrr](https://github.com/acauanrr)
+- Institution: Federal University of Amazonas (UFAM)
 
-## 🙏 Agradecimentos
+## 🙏 Acknowledgments
 
-- Universidade Federal do Amazonas (UFAM)
-- Programa de Pós-Graduação em Informática
+- Federal University of Amazonas (UFAM)
+- Graduate Program in Computer Science
+- Research funded by CAPES/CNPq
+
+## 📊 Project Status
+
+- **Version**: 2.0.0
+- **Status**: ✅ Active Development
+- **Last Updated**: January 2025
+
+## 🔗 Links
+
+- [Live Demo](https://phylo-explorer.herokuapp.com) (when deployed)
+- [Documentation](docs/)
+- [Issue Tracker](https://github.com/acauanrr/philo_explorer_paper/issues)
 
 ---
 
-**Versão**: 1.0.0
-**Status**: ✅ Em Desenvolvimento
-**Última Atualização**: Dezembro 2024
+<div align="center">
+Made with ❤️ at UFAM
+</div>

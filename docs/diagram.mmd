@@ -1,0 +1,107 @@
+graph TB
+    %% User Interface Layer
+    subgraph "User Interface Layer"
+        UI[Next.js Frontend<br/>Port 3000]
+        UI --> |React Components| VIZ[Visualization Components]
+        VIZ --> TREE[Phylogenetic Tree<br/>D3.js]
+        VIZ --> WORD[Word Cloud<br/>D3.js]
+        VIZ --> MAP[Geographic Map<br/>D3.js]
+        VIZ --> RIVER[Theme River<br/>D3.js]
+
+        UI --> CTX[PhyloContext<br/>State Management]
+        CTX --> |Unified Selection| VIZ
+    end
+
+    %% API Gateway Layer
+    subgraph "API Gateway Layer"
+        NODE[Node.js Backend<br/>Express API<br/>Port 4000]
+        NODE --> ROUTES[API Routes]
+        ROUTES --> PHYLO["/api/phylo<br/>Tree & Search"]
+        ROUTES --> UPLOAD["/upload<br/>File Processing"]
+
+        NODE --> SERVICES[Services]
+        SERVICES --> WEB[Web Scraping<br/>Cheerio]
+        SERVICES --> NLP[Text Processing<br/>Wink-NLP]
+        SERVICES --> GEO[Geolocation<br/>OpenCage API]
+    end
+
+    %% Machine Learning Layer
+    subgraph "Machine Learning Layer"
+        PYTHON[Python Backend<br/>FastAPI<br/>Port 8001]
+        PYTHON --> ML[ML Services]
+        ML --> EMB[Embedding Service<br/>Sentence Transformers]
+        ML --> DIST[Distance Matrix<br/>Cosine/Euclidean]
+        ML --> NJ[Neighbor Joining<br/>Tree Reconstruction]
+        ML --> PRE[Text Preprocessor<br/>NLP Pipeline]
+
+        PYTHON --> CACHE[(Model Cache<br/>Persistent Volume)]
+    end
+
+    %% External Services
+    subgraph "External Services"
+        HF[HuggingFace Spaces<br/>ML Service]
+        OPENCAGE[OpenCage<br/>Geocoding API]
+        WEBSRC[Web Sources<br/>Content Extraction]
+    end
+
+    %% Infrastructure Layer
+    subgraph "Infrastructure Layer"
+        NGINX[Nginx<br/>Reverse Proxy<br/>Ports 80/443]
+        REDIS[(Redis Cache<br/>Port 6379)]
+        DOCKER[Docker Compose<br/>Orchestration]
+    end
+
+    %% Data Flow Connections
+    UI -->|HTTP/JSON| NODE
+    NODE -->|REST API| PYTHON
+    NODE -->|HTTP| HF
+    NODE -->|API Calls| OPENCAGE
+    NODE -->|Web Scraping| WEBSRC
+
+    %% Infrastructure Connections
+    NGINX -->|Proxy| UI
+    NGINX -->|Proxy| NODE
+    NGINX -->|Proxy| PYTHON
+    NODE -.->|Future: Caching| REDIS
+    PYTHON -.->|Future: Task Queue| REDIS
+
+    %% Docker Management
+    DOCKER -->|Container| UI
+    DOCKER -->|Container| NODE
+    DOCKER -->|Container| PYTHON
+    DOCKER -->|Container| NGINX
+    DOCKER -->|Container| REDIS
+
+    %% Key Data Flows with Labels
+    UI ===>|"1. Upload Data"| NODE
+    NODE ===>|"2. Process Text"| PYTHON
+    PYTHON ===>|"3. Generate Embeddings"| EMB
+    EMB ===>|"4. Calculate Distances"| DIST
+    DIST ===>|"5. Build Tree"| NJ
+    NJ ===>|"6. Return Newick"| NODE
+    NODE ===>|"7. Send to Frontend"| UI
+    UI ===>|"8. Render Tree"| TREE
+
+    %% Search Flow
+    TREE -.->|"Select Node"| CTX
+    CTX -.->|"Trigger Search"| NODE
+    NODE -.->|"Web Search"| WEBSRC
+    NODE -.->|"Extract Locations"| HF
+    HF -.->|"NER Results"| NODE
+    NODE -.->|"Geocode"| OPENCAGE
+    OPENCAGE -.->|"Coordinates"| NODE
+    NODE -.->|"Aggregated Data"| UI
+    UI -.->|"Update Visualizations"| VIZ
+
+    %% Styling - High contrast colors for both dark and light modes
+    classDef frontend fill:#4a90e2,stroke:#2c5aa0,stroke-width:3px,color:#ffffff
+    classDef backend fill:#f39c12,stroke:#d68910,stroke-width:3px,color:#ffffff
+    classDef ml fill:#9b59b6,stroke:#7d3c98,stroke-width:3px,color:#ffffff
+    classDef external fill:#27ae60,stroke:#229954,stroke-width:3px,color:#ffffff
+    classDef infra fill:#e74c3c,stroke:#c0392b,stroke-width:3px,color:#ffffff
+
+    class UI,VIZ,TREE,WORD,MAP,RIVER,CTX frontend
+    class NODE,ROUTES,PHYLO,UPLOAD,SERVICES,WEB,NLP,GEO backend
+    class PYTHON,ML,EMB,DIST,NJ,PRE,CACHE ml
+    class HF,OPENCAGE,WEBSRC external
+    class NGINX,REDIS,DOCKER infra
