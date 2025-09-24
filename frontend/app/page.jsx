@@ -5,212 +5,86 @@ import {
   Box,
   Grid,
   GridItem,
-  HStack,
   Heading,
   Text,
-  Tooltip,
   VStack,
   useBreakpointValue,
-  useColorModeValue,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
 } from "@chakra-ui/react";
-import { TbArrowsMinimize, TbArrowsMaximize } from "react-icons/tb";
-import Navbar from "../components/layout/Navbar";
-import PhyloExplorer from "../components/visualizations/PhyloExplorer";
-import EnhancedPhyloExplorer from "../components/visualizations/PhyloExplorer/EnhancedPhyloExplorer";
-import WordCloudVis from "../components/visualizations/WordCloudVis";
-import DetailsPanel from "../components/layout/DetailsPanel";
-import ThemeRiver from "../components/visualizations/ThemeRiver";
 import { PhyloProvider } from "../src/context/PhyloContext";
-import InspectorPanel from "../src/components/InspectorPanel";
-import AggregatedErrorView from "../src/components/quality/AggregatedErrorView";
-import MissingNeighborsSingle from "../src/components/quality/MissingNeighborsSingle";
+import AggregatedErrorTreeView from "../src/components/quality/AggregatedErrorTreeView";
+import MissingNeighborsTreeView from "../src/components/quality/MissingNeighborsTreeView";
+import CompareProjectionsTreeView from "../src/components/quality/CompareProjectionsTreeView";
+import DatasetSelector from "../components/dataset/DatasetSelector";
+import QualityInspectorTreeNJ from "../components/quality/QualityInspectorTreeNJ";
+import { MainNavigation, NavigationTabPanel } from "../components/navigation/MainNavigation";
+import { AppHeader } from "../components/layout/AppHeader";
 
 function HomeContent() {
-  const colorsBar = ["#184282", "#18294C", "gray.200"];
-  const [show, setShow] = useState(true);
-  const borderColor = useColorModeValue("gray.200", "gray.600");
-
-  const toggleShow = () => setShow(!show);
-
-  // Responsive values
-  const sidebarWidth = useBreakpointValue({ base: "100%", md: "15%" });
-  const rightPanelWidth = useBreakpointValue({ base: "100%", md: "20%" });
-  const isMobile = useBreakpointValue({ base: true, md: false });
+  const [activeTab, setActiveTab] = useState(0);
 
   return (
     <Grid
       h="100vh"
-      templateRows={show ? "auto 1fr auto" : "1fr"}
-      templateColumns={
-        show && !isMobile
-          ? `${sidebarWidth} 1fr ${rightPanelWidth}`
-          : "1fr"
-      }
-      gap={show && !isMobile ? 1 : 0}
+      templateRows="auto 1fr"
+      templateColumns="1fr"
+      gap={0}
       bg="white"
       overflow="hidden"
     >
-      {/* -------- NAVBAR MENU -------- */}
-      <GridItem
-        colSpan={show && !isMobile ? 1 : 3}
-        colStart={show && !isMobile ? 1 : 1}
-        borderBottom="1px"
-        borderRight={show && !isMobile ? "2px" : "0"}
-        borderColor={borderColor}
-        display={show ? "block" : "none"}
-      >
-        <Navbar />
+      {/* Header */}
+      <GridItem>
+        <AppHeader activeTab={activeTab} />
       </GridItem>
 
-      {/* -------- DETAILS SIDEBAR -------- */}
-      {show && !isMobile && (
-        <GridItem
-          rowSpan={2}
-          rowStart={2}
-          h="full"
-          borderRight="1px"
-          borderColor={borderColor}
-          overflow="hidden"
-          bg="gray.50"
+      {/* Main Content with Navigation */}
+      <GridItem h="full" overflow="hidden">
+        <MainNavigation
+          activeTab={activeTab}
+          onChange={(index) => setActiveTab(index)}
         >
-          <DetailsPanel colorsBar={colorsBar} />
-        </GridItem>
-      )}
-
-      {/* -------- MAIN : PHYLO VIS -------- */}
-      <GridItem
-        colSpan={isMobile || !show ? 3 : 1}
-        rowSpan={show && !isMobile ? 2 : 1}
-        rowStart={show && !isMobile ? 1 : 1}
-        h="full"
-        overflow="hidden"
-      >
-        <VStack h="full" spacing={0}>
-          <HStack
-            w="full"
-            h="6"
-            px={2}
-            bgGradient={`linear(to-l, ${colorsBar[0]}, ${colorsBar[1]})`}
-            justifyContent="space-between"
-            flexShrink={0}
-          >
-            <Heading fontSize="sm" fontWeight="semibold" color="white">
-              Phylogenetic Tree Explorer
-            </Heading>
-            <Tooltip
-              label={show ? "Full Screen" : "Exit Full Screen"}
-              placement="top-start"
-              fontSize="xs"
-            >
-              <Box
-                color="white"
-                onClick={toggleShow}
-                cursor="pointer"
-                _hover={{ color: "gray.300" }}
-              >
-                {show ? <TbArrowsMaximize /> : <TbArrowsMinimize />}
+          {/* Data Input Tab */}
+          <NavigationTabPanel>
+            <Box h="full" overflow="auto" p={4}>
+              <Box maxW="1000px" mx="auto" py={4}>
+                <VStack spacing={6}>
+                  <VStack spacing={2} textAlign="center">
+                    <Heading size="lg" color="blue.600">
+                      Dataset Configuration
+                    </Heading>
+                    <Text fontSize="md" color="gray.600">
+                      Configure your datasets using the step-by-step wizard below.
+                      This improved flow prevents premature processing and gives you full control over when to start the analysis.
+                    </Text>
+                  </VStack>
+                  <Box w="full">
+                    <DatasetSelector />
+                  </Box>
+                </VStack>
               </Box>
-            </Tooltip>
-          </HStack>
-          <Box flex="1" w="full" h="full" overflow="hidden">
-            <Tabs h="full" display="flex" flexDirection="column">
-              <TabList bg="gray.50" borderBottom="1px solid" borderColor={borderColor}>
-                <Tab>Phylo Tree</Tab>
-                <Tab>Quality Inspector</Tab>
-                <Tab>Aggregated Errors</Tab>
-                <Tab>Missing Neighbors</Tab>
-              </TabList>
-              <TabPanels flex="1" overflow="hidden">
-                <TabPanel h="full" p={0}>
-                  <EnhancedPhyloExplorer show={show} />
-                </TabPanel>
-                <TabPanel h="full" p={0}>
-                  <InspectorPanel />
-                </TabPanel>
-                <TabPanel h="full" p={0}>
-                  <AggregatedErrorView width={800} height={600} />
-                </TabPanel>
-                <TabPanel h="full" p={0}>
-                  <MissingNeighborsSingle width={800} height={600} />
-                </TabPanel>
-              </TabPanels>
-            </Tabs>
-          </Box>
-        </VStack>
+            </Box>
+          </NavigationTabPanel>
+
+          {/* Quality Inspector Tab */}
+          <NavigationTabPanel>
+            <QualityInspectorTreeNJ />
+          </NavigationTabPanel>
+
+          {/* Aggregated Errors Tab */}
+          <NavigationTabPanel>
+            <AggregatedErrorTreeView />
+          </NavigationTabPanel>
+
+          {/* Missing Neighbors Tab */}
+          <NavigationTabPanel>
+            <MissingNeighborsTreeView />
+          </NavigationTabPanel>
+
+          {/* Compare Projections Tab */}
+          <NavigationTabPanel>
+            <CompareProjectionsTreeView />
+          </NavigationTabPanel>
+        </MainNavigation>
       </GridItem>
-
-      {/* -------- RIGHT PANEL: WORDCLOUD -------- */}
-      {show && !isMobile && (
-        <GridItem
-          colSpan={1}
-          colStart={3}
-          rowSpan={3}
-          rowStart={1}
-          h="full"
-          borderLeft="1px"
-          borderColor={borderColor}
-          overflow="hidden"
-          bg="gray.50"
-        >
-          <VStack h="full" spacing={0}>
-            <Box w="full" flex="1" overflow="hidden">
-              <Heading
-                as="h4"
-                size="sm"
-                w="full"
-                h="8"
-                color="white"
-                px={3}
-                bgGradient={`linear(to-l, ${colorsBar[0]}, ${colorsBar[1]})`}
-                display="flex"
-                alignItems="center"
-                fontSize="sm"
-                fontWeight="semibold"
-              >
-                Word Cloud
-              </Heading>
-              <Box h="calc(100% - 2rem)" overflow="hidden">
-                <WordCloudVis />
-              </Box>
-            </Box>
-          </VStack>
-        </GridItem>
-      )}
-
-      {/* -------- THEME RIVER -------- */}
-      {show && (
-        <GridItem
-          colSpan={3}
-          h={isMobile ? "180px" : "150px"}
-          borderTop="1px"
-          borderColor={borderColor}
-          overflow="hidden"
-        >
-          <VStack h="full" spacing={0}>
-            <Box
-              w="full"
-              h="6"
-              color="white"
-              px={2}
-              bgGradient={`linear(to-l, ${colorsBar[0]}, ${colorsBar[1]})`}
-              display="flex"
-              alignItems="center"
-            >
-              <Heading fontSize="sm" fontWeight="semibold">
-                Theme River
-              </Heading>
-            </Box>
-            <Box flex="1" w="full" overflow="hidden">
-              <ThemeRiver />
-            </Box>
-          </VStack>
-        </GridItem>
-      )}
     </Grid>
   );
 }

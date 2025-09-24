@@ -1,167 +1,243 @@
-# Phylo-Explorer Frontend - version: 1
+# Phylo Explorer - Phylogenetic Tree Analysis System
 
-Interactive web interface for visualizing phylogenetic trees, word clouds, and temporal patterns in document collections.
+## 📊 Overview
 
-## Live Demo
+Phylo Explorer is a comprehensive web application for visualizing and analyzing phylogenetic trees with quality metrics. It enables researchers to compare datasets, analyze missing neighbors, and evaluate projection quality through interactive visualizations.
 
-https://phylo-explorer-front-5c59fee5d5c4.herokuapp.com/
+## 🚀 Features
 
-## Features
+### Core Functionality
+- **Dataset Configuration Wizard**: Step-by-step interface for loading T1 and T2 datasets
+- **Phylogenetic Tree Visualization**: D3.js-based tree rendering with neighbor-joining algorithm
+- **Quality Analysis**: Comprehensive metrics for projection quality assessment
+- **Dataset Comparison**: Visual comparison between T1 and T2 datasets with change detection
 
-- **Interactive Phylogenetic Tree Visualization** - D3.js-powered tree explorer with node selection and zoom
-- **Geographic Location Mapping** - Automatic location extraction with interactive world map visualization
-- **Semantic Search Integration** - Enhanced search with Wikipedia and web source enrichment
-- **Word Cloud Generation** - Visual representation of term frequencies
-- **Timeline Visualization** - Track document changes over time
-- **Real-time Information Retrieval** - Dynamic content fetching with location geocoding
-- **Responsive Design** - Mobile and desktop optimized
-- **Full-screen Mode** - Focus view for detailed analysis
-- **CSV File Upload** - Easy data import interface
+### Visualization Tabs
+1. **Data Input**: Configure and load datasets with validation
+2. **Quality Inspector**: Interactive tree visualization with quality metrics
+3. **Aggregated Errors**: Statistical analysis of projection errors
+4. **Missing Neighbors**: Analysis of missing neighbor relationships between datasets
+5. **Compare Projections**: Side-by-side comparison of different projection methods
 
-## Quick Start
+## 🏗️ Architecture
 
-```bash
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env.local
-
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
+### Frontend Structure (Cleaned & Optimized)
 ```
-
-## Environment Variables
-
-Create `.env.local` file:
-
-```
-NEXT_PUBLIC_API_URL=http://localhost:6001
-NEXT_PUBLIC_APP_NAME=Phylo Explorer
-NEXT_PUBLIC_APP_VERSION=1.0.0
-```
-
-For production deployment:
-```
-NEXT_PUBLIC_API_URL=https://phylo-explorer-api-v2-2fcb24032c89.herokuapp.com
-```
-
-## Project Structure
-
-```
-phylo-explorer-front/
-├── app/                  # Next.js 13 app directory
-│   ├── layout.jsx       # Root layout
-│   ├── page.jsx         # Main page
-│   └── providers.jsx    # Context providers
+frontend/
+├── app/                        # Next.js app directory
+│   ├── layout.jsx             # Root layout with providers
+│   ├── page.jsx               # Main application page
+│   └── providers.jsx          # Chakra UI provider setup
 ├── components/
-│   ├── _ui/             # Reusable UI components
-│   ├── layout/          # Layout components
-│   └── visualizations/  # D3.js visualizations
-├── contexts/            # React contexts
-└── public/              # Static assets
+│   ├── dataset/
+│   │   └── DatasetSelector.jsx    # Dataset loading wizard
+│   ├── layout/
+│   │   └── AppHeader.jsx          # Application header
+│   ├── navigation/
+│   │   └── MainNavigation.jsx     # Tab navigation system
+│   └── quality/
+│       └── QualityInspectorTreeNJ.jsx  # Tree quality inspector
+├── src/
+│   ├── components/quality/
+│   │   ├── AggregatedErrorTreeView.jsx    # Error aggregation view
+│   │   ├── CompareProjectionsTreeView.jsx # Projection comparison
+│   │   ├── MissingNeighborsTreeView.jsx   # Missing neighbors analysis
+│   │   └── shepard.ts                     # Shepard diagram utilities
+│   ├── context/
+│   │   └── PhyloContext.jsx    # Global state management
+│   └── utils/
+│       ├── treeUtils.js        # Tree generation utilities
+│       └── incrementalTreeUtils.js  # Incremental tree construction
+└── public/
+    ├── datasets/               # Sample datasets
+    └── vis/tree-of-life/      # D3.js tree visualization library
 ```
 
-## Key Components
+### Backend Services
 
-### Visualizations
+The system uses a microservices architecture:
 
-- **PhyloExplorer** - Interactive phylogenetic tree using D3.js with node selection and real-time details
-- **LocationMap** - Interactive world map with geographic markers using D3.js and OpenStreetMap data
-- **WordCloudVis** - Dynamic word cloud visualization
-- **TimeVis** - Timeline chart for temporal data
-- **ThemeRiver** - Temporal flow visualization for document themes
+- **API Gateway** (Port 4000): Routes requests to appropriate services
+- **Backend Python** (Port 8001): Handles phylogenetic tree generation and ML operations
+- **Frontend** (Port 3000): Next.js React application
 
-### Layout
+## 🛠️ Installation
 
-- **Navbar** - Main navigation with file upload
-- **DetailsPanel** - Dynamic document details with semantic search and location data
-- **InfoMenu** - Information and help menu
-- **PhyloContext** - Unified state management for tree selection and location data
+### Prerequisites
+- Node.js 18+
+- Python 3.8+
+- npm or yarn
 
-## Development
+### Setup Instructions
 
+1. **Clone the repository**
 ```bash
-# Run development server with hot reload
+git clone [repository-url]
+cd phylo_explorer_project/philo_explorer_paper/frontend
+```
+
+2. **Install frontend dependencies**
+```bash
+npm install
+```
+
+3. **Setup Python backend**
+```bash
+cd ../backend-python
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+4. **Setup API Gateway**
+```bash
+cd ../api-gateway
+npm install
+```
+
+## 🚀 Running the Application
+
+### Start all services:
+
+1. **Backend Python Service**
+```bash
+cd backend-python
+source venv/bin/activate
+uvicorn main:app --reload --host 0.0.0.0 --port 8001
+```
+
+2. **API Gateway**
+```bash
+cd api-gateway
+PORT=4000 npm run dev
+```
+
+3. **Frontend**
+```bash
+cd frontend
 npm run dev
-
-# Check for linting issues
-npm run lint
-
-# Build optimized production bundle
-npm run build
 ```
 
-## Deployment
+Access the application at: `http://localhost:3000`
 
-### Heroku
+## 📁 Data Format
 
-```bash
-heroku create phylo-explorer
-heroku config:set NEXT_PUBLIC_API_URL_DEPLOY=https://your-api.herokuapp.com/
-git push heroku main
+### Dataset Structure
+Datasets should be JSON files with the following structure:
+```json
+[
+  {
+    "id": "unique-identifier",
+    "title": "Article Title",
+    "content": "Article content text...",
+    "metadata": {}
+  }
+]
 ```
 
-### Vercel
+### Sample Datasets
+- `T1_news_dataset_full.json`: 200 news articles (baseline)
+- `T2_news_dataset_full.json`: 210 news articles (includes 10 additional)
 
-```bash
-vercel --prod
+### Supported Formats
+- JSON datasets in `/public/datasets/json/`
+- Newick format trees in `/public/datasets/newicks/`
+- CSV data in `/public/datasets/csv/`
+
+## 🔧 Configuration
+
+### Environment Variables
+Create a `.env.local` file in the frontend directory:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8001
 ```
 
-### Static Export
+### Key Technologies
+- **Frontend**: Next.js 13+, React 18, Chakra UI, D3.js
+- **Backend**: FastAPI, NumPy, SciPy, scikit-learn
+- **API Gateway**: Express.js, Axios
+- **Visualization**: D3.js, Observable HQ Tree of Life
 
-```bash
-# Generate static HTML export
-npm run build
-npm run export
-```
+## 📊 Quality Metrics
 
-## Technologies
+The system calculates various quality metrics:
+- **Stress**: Measures preservation of distances in projection
+- **Trustworthiness**: Local neighborhood preservation
+- **Missing Neighbors**: Identifies lost connections between datasets
+- **Structural Similarity**: Tree topology comparison
+- **Incremental Changes**: Tracks additions, removals, and modifications
 
-- **Next.js 13** - React framework
-- **Chakra UI** - Component library
-- **D3.js** - Data visualization
-- **React 18** - UI library
-- **Framer Motion** - Animations
+## 🧪 Development
 
-## Browser Support
+### Available Scripts
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
 
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
+### Project Structure Philosophy
+- **Modular Components**: Each visualization tab is self-contained
+- **Centralized State**: PhyloContext manages global application state
+- **Efficient Tree Generation**: Trees generated once and reused across views
+- **Progressive Enhancement**: Graceful degradation for large datasets
+- **Clean Architecture**: Removed unused files, optimized imports
 
-## Performance Optimizations
+## 📈 Performance Considerations
 
-- Code splitting
-- Lazy loading
-- Optimized bundle size
-- Responsive images
-- SWC minification
+- **Dataset Size**: Optimized for datasets with 200-500 nodes
+- **Tree Generation**: Uses neighbor-joining algorithm with O(n³) complexity
+- **Visualization**: D3.js with efficient DOM updates
+- **Caching**: Tree structures cached to avoid recomputation
+- **Incremental Updates**: Efficient handling of dataset differences
 
-## Contributing
+## 🎨 UI/UX Features
+
+- **Step-by-Step Wizard**: Guided dataset configuration
+- **Real-time Feedback**: Loading states and progress indicators
+- **Interactive Trees**: Zoom, pan, and node selection
+- **Color Coding**: Visual distinction for added/removed/modified nodes
+- **Responsive Design**: Adapts to different screen sizes
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create feature branch
-3. Commit changes
-4. Push to branch
-5. Open pull request
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## License
+## 📝 Recent Updates
 
-ISC License
+- **Project Cleanup**: Removed unused Phase 3 implementations and duplicate components
+- **Architecture Optimization**: Streamlined component structure
+- **Documentation Update**: Comprehensive README with current structure
+- **Bug Fixes**: Fixed dataset loading and tree generation issues
 
-## Author
+## 🐛 Known Issues
 
-Acauan Ribeiro
+- Large datasets (>1000 nodes) may experience performance degradation
+- WebGL rendering fallback to Canvas 2D for older browsers
+- Tree layout may require manual adjustment for optimal viewing
 
-## Contact
+## 📚 References
 
-- Email: acauan.ribeiro@ufrr.br
-- LinkedIn: [acauanribeiro](https://www.linkedin.com/in/acauanribeiro)
+- [D3.js Tree of Life](https://observablehq.com/@d3/tree-of-life)
+- [Neighbor-Joining Algorithm](https://en.wikipedia.org/wiki/Neighbor_joining)
+- [Chakra UI Documentation](https://chakra-ui.com/)
+- [Next.js Documentation](https://nextjs.org/docs)
+
+## 👥 Team
+
+- Research team at UFAM (Federal University of Amazonas)
+- Phylogenetic analysis and visualization specialists
+
+## 💬 Support
+
+For issues, questions, or suggestions, please open an issue on the GitHub repository.
+
+---
+
+**Note**: This is an active research project. Features and APIs may change as the project evolves.
+
+**Last Updated**: September 2024

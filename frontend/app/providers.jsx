@@ -1,12 +1,12 @@
 "use client";
 
-import { PhyloContextProvider } from "@/contexts/PhyloContext";
+import { PhyloProvider } from "../src/context/PhyloContext";
 import { ChakraProvider } from "@chakra-ui/react";
 
 export function Providers({ children }) {
   return (
-    <PhyloContextProvider>
+    <PhyloProvider>
       <ChakraProvider>{children}</ChakraProvider>
-    </PhyloContextProvider>
+    </PhyloProvider>
   );
 }

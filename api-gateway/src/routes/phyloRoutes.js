@@ -650,6 +650,63 @@ router.post('/debug/pipeline-test', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/phylo/process-datasets
+ * Process datasets for phylogenetic analysis
+ */
+router.post('/process-datasets', async (req, res) => {
+  try {
+    const { dataset_t1, dataset_t2, analysis_type } = req.body;
+
+    if (!dataset_t1 || !dataset_t2) {
+      return res.status(400).json({
+        success: false,
+        error: 'Both dataset_t1 and dataset_t2 are required'
+      });
+    }
+
+    console.log(`Processing datasets: T1=${dataset_t1.length} items, T2=${dataset_t2.length} items`);
+
+    // For now, return mock data to enable frontend development
+    // This would be replaced with actual phylogenetic processing
+    const mockResponse = {
+      success: true,
+      cache_key_t1: `cache_${Date.now()}_t1`,
+      cache_key_t2: `cache_${Date.now()}_t2`,
+      analysis_type: analysis_type || 'comparison',
+      datasets_info: {
+        t1: {
+          count: dataset_t1.length,
+          categories: [...new Set(dataset_t1.map(item => item.category))],
+          date_range: {
+            min: Math.min(...dataset_t1.map(item => new Date(item.date).getTime())),
+            max: Math.max(...dataset_t1.map(item => new Date(item.date).getTime()))
+          }
+        },
+        t2: {
+          count: dataset_t2.length,
+          categories: [...new Set(dataset_t2.map(item => item.category))],
+          date_range: {
+            min: Math.min(...dataset_t2.map(item => new Date(item.date).getTime())),
+            max: Math.max(...dataset_t2.map(item => new Date(item.date).getTime()))
+          }
+        }
+      },
+      processing_status: 'completed',
+      message: `Successfully processed ${dataset_t1.length} vs ${dataset_t2.length} articles`
+    };
+
+    res.json(mockResponse);
+
+  } catch (error) {
+    console.error('Error processing datasets:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process datasets'
+    });
+  }
+});
+
 // Import quality routes - simplified version for testing
 router.post('/quality/errors', async (req, res) => {
   try {

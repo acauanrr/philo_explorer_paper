@@ -384,6 +384,33 @@ class PythonClient {
       return Math.max(-3, Math.min(3, scaled));
     });
   }
+
+  /**
+   * Generic POST method for new endpoints
+   */
+  async post<T = any>(url: string, data?: any): Promise<{ data: T }> {
+    return this.client.post<T>(url, data);
+  }
+
+  /**
+   * Get missing neighbors graph for edge bundling
+   */
+  async missingNeighborsGraph(eij: number[][], phi: number) {
+    return this.client.post('/api/v1/quality/missing_neighbors_graph', {
+      e_ij_matrix: eij,
+      phi
+    });
+  }
+
+  /**
+   * Compare two projections
+   */
+  async projectionCompare(A: number[][], B: number[][]) {
+    return this.client.post('/api/v1/quality/projection_compare', {
+      low_dim_points_A: A,
+      low_dim_points_B: B
+    });
+  }
 }
 
 // Export singleton instance

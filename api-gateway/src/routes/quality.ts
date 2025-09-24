@@ -8,7 +8,8 @@ import {
   getCacheCompressed,
   CacheKeys,
   cacheExists,
-  setCacheMultiple
+  setCacheMultiple,
+  deleteCache
 } from '../redis';
 import pythonClient from '../services/pythonClient';
 
@@ -478,6 +479,176 @@ router.delete('/cache/:cacheKey', async (req: Request, res: Response) => {
     console.error('Error clearing cache:', error);
     return res.status(500).json({
       error: 'Failed to clear cache',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/phylo/quality/missing-neighbors-graph
+ * Get missing neighbors graph for edge bundling visualization
+ */
+router.post('/missing-neighbors-graph', async (req: Request, res: Response) => {
+  try {
+    const { cacheKey, phi } = req.body;
+
+    if (!cacheKey || phi === undefined) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'cacheKey and phi are required'
+      });
+    }
+
+    // Generate cache key hash for this specific request
+    const cacheKeyHash = generateCacheKey({
+      base: cacheKey,
+      type: 'missing_neighbors_graph',
+      phi: phi.toFixed(4)
+    });
+
+    // Check cache
+    const cached = await getCacheCompressed(cacheKeyHash);
+    if (cached) {
+      return res
+        .set('X-Cache', 'HIT')
+        .set('X-Cache-Key', cacheKeyHash)
+        .json(cached);
+    }
+
+    // Get error matrix from cache (should be cached from Phase 2)
+    const errorMatrixKey = `${cacheKey}:error_matrix`;
+    const errorMatrix = await getCacheCompressed(errorMatrixKey);
+
+    if (!errorMatrix) {
+      // If error matrix not in cache, we need to compute it first
+      // This should rarely happen as Phase 2 should have cached it
+      return res.status(400).json({
+        error: 'Error matrix not found',
+        message: 'Please compute quality metrics first'
+      });
+    }
+
+    // Call Python service with error matrix
+    const result = await pythonClient.post('/api/v1/quality/missing_neighbors_graph', {
+      e_ij_matrix: errorMatrix,
+      phi
+    });
+
+    // Transform result to expected format
+    const edges = result.data.edges.map((edge: any) => ({
+      source: edge.source,
+      target: edge.target,
+      error: edge.error
+    }));
+
+    const response = {
+      edges,
+      stats: {
+        max: result.data.stats?.max || Math.max(...edges.map((e: any) => e.error)),
+        min: result.data.stats?.min || Math.min(...edges.map((e: any) => e.error)),
+        count: edges.length
+      }
+    };
+
+    // Cache the result (24h TTL)
+    await setCacheCompressed(cacheKeyHash, response, 86400);
+
+    return res
+      .set('X-Cache', 'MISS')
+      .set('X-Cache-Key', cacheKeyHash)
+      .json(response);
+
+  } catch (error: any) {
+    console.error('Error getting missing neighbors graph:', error);
+    return res.status(500).json({
+      error: 'Failed to get missing neighbors graph',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/phylo/quality/projection-compare
+ * Compare two projections of the same dataset
+ */
+router.post('/projection-compare', async (req: Request, res: Response) => {
+  try {
+    const { low_dim_points_A, low_dim_points_B } = req.body;
+
+    if (!low_dim_points_A || !low_dim_points_B) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'low_dim_points_A and low_dim_points_B are required'
+      });
+    }
+
+    // Validate same number of points
+    if (low_dim_points_A.length !== low_dim_points_B.length) {
+      return res.status(400).json({
+        error: 'Invalid input',
+        message: 'Both projections must have the same number of points'
+      });
+    }
+
+    // Generate cache key hash
+    const cacheKeyHash = generateCacheKey({
+      type: 'projection_compare',
+      pointsA: JSON.stringify(low_dim_points_A.slice(0, 5)), // Sample for key
+      pointsB: JSON.stringify(low_dim_points_B.slice(0, 5)),
+      countA: low_dim_points_A.length,
+      countB: low_dim_points_B.length
+    });
+
+    // Check cache
+    const cached = await getCacheCompressed(cacheKeyHash);
+    if (cached) {
+      return res
+        .set('X-Cache', 'HIT')
+        .set('X-Cache-Key', cacheKeyHash)
+        .json(cached);
+    }
+
+    // Call Python service
+    const result = await pythonClient.post('/api/v1/quality/projection_compare', {
+      low_dim_points_A,
+      low_dim_points_B
+    });
+
+    // Calculate displacement errors
+    const disp_errors: number[] = [];
+    for (let i = 0; i < low_dim_points_A.length; i++) {
+      const dx = low_dim_points_A[i][0] - low_dim_points_B[i][0];
+      const dy = low_dim_points_A[i][1] - low_dim_points_B[i][1];
+      disp_errors.push(Math.sqrt(dx * dx + dy * dy));
+    }
+
+    const response = {
+      disp_errors,
+      stats: {
+        max_error: Math.max(...disp_errors),
+        min_error: Math.min(...disp_errors),
+        mean_error: disp_errors.reduce((a, b) => a + b, 0) / disp_errors.length,
+        std_error: 0 // Calculate if needed
+      }
+    };
+
+    // Calculate standard deviation
+    const mean = response.stats.mean_error;
+    const variance = disp_errors.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / disp_errors.length;
+    response.stats.std_error = Math.sqrt(variance);
+
+    // Cache the result (24h TTL)
+    await setCacheCompressed(cacheKeyHash, response, 86400);
+
+    return res
+      .set('X-Cache', 'MISS')
+      .set('X-Cache-Key', cacheKeyHash)
+      .json(response);
+
+  } catch (error: any) {
+    console.error('Error comparing projections:', error);
+    return res.status(500).json({
+      error: 'Failed to compare projections',
       message: error.message
     });
   }
