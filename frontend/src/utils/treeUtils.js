@@ -1,163 +1,306 @@
 import * as d3 from 'd3';
 
-// Calculate distance matrix from dataset using cosine similarity
-export const calculateDistanceMatrix = (dataset, maxItems = null) => {
-  if (!dataset || dataset.length === 0) return null;
+const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8001';
+const PIPELINE_ENDPOINT = `${BACKEND_BASE_URL}/api/v1/pipeline/full`;
+const TREE_RECON_ENDPOINT = `${BACKEND_BASE_URL}/api/v1/tree/reconstruct`;
 
-  const n = maxItems ? Math.min(dataset.length, maxItems) : dataset.length;
-  const matrix = [];
-  const labels = [];
-
-  // Create TF-IDF vectors for each document
-  const documents = dataset.slice(0, n).map(article => {
-    labels.push(article.title ? article.title.substring(0, 30) : article.id);
-    return (article.content || "") + " " + (article.short_description || "");
-  });
-
-  // Simple TF-IDF calculation
-  const termFrequencies = {};
-  const documentFrequencies = {};
-  const vectors = [];
-
-  // Calculate term frequencies
-  documents.forEach(doc => {
-    const terms = doc.toLowerCase().split(/\s+/);
-    const tf = {};
-    const uniqueTerms = new Set();
-
-    terms.forEach(term => {
-      tf[term] = (tf[term] || 0) + 1;
-      uniqueTerms.add(term);
-    });
-
-    uniqueTerms.forEach(term => {
-      documentFrequencies[term] = (documentFrequencies[term] || 0) + 1;
-    });
-
-    vectors.push(tf);
-  });
-
-  // Calculate IDF and create TF-IDF vectors
-  const allTerms = Object.keys(documentFrequencies);
-  const idf = {};
-  allTerms.forEach(term => {
-    idf[term] = Math.log(n / documentFrequencies[term]);
-  });
-
-  const tfidfVectors = vectors.map(tf => {
-    const tfidf = {};
-    Object.keys(tf).forEach(term => {
-      tfidf[term] = tf[term] * idf[term];
-    });
-    return tfidf;
-  });
-
-  // Calculate cosine distances
-  for (let i = 0; i < n; i++) {
-    matrix[i] = [];
-    for (let j = 0; j < n; j++) {
-      if (i === j) {
-        matrix[i][j] = 0;
-      } else {
-        // Calculate cosine similarity
-        const v1 = tfidfVectors[i];
-        const v2 = tfidfVectors[j];
-
-        let dotProduct = 0;
-        let norm1 = 0;
-        let norm2 = 0;
-
-        allTerms.forEach(term => {
-          const val1 = v1[term] || 0;
-          const val2 = v2[term] || 0;
-          dotProduct += val1 * val2;
-          norm1 += val1 * val1;
-          norm2 += val2 * val2;
-        });
-
-        norm1 = Math.sqrt(norm1);
-        norm2 = Math.sqrt(norm2);
-
-        const similarity = (norm1 && norm2) ? dotProduct / (norm1 * norm2) : 0;
-        const distance = 1 - similarity;
-
-        matrix[i][j] = Math.max(0, distance);
-      }
-    }
+const fallbackId = (value, idx) => {
+  if (!value) {
+    return `item-${idx + 1}`;
   }
-
-  return { matrix, labels, articles: dataset.slice(0, n) };
+  return value
+    .toString()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || `item-${idx + 1}`;
 };
 
-// Fetch tree from Neighbor Joining algorithm
-export const fetchNeighborJoiningTree = async (distanceData, currentDataset) => {
-  if (!distanceData) return null;
+const normalizeLabel = (value) => (value ?? '').toString().trim();
 
+const buildStableId = (item, index) => {
+  if (!item) return `item-${index + 1}`;
+  if (item.external_id) return item.external_id.toString();
+  if (item.id) return item.id.toString();
+  if (item.guid) return item.guid.toString();
+  if (item.slug) return item.slug.toString();
+  if (item.title) return fallbackId(item.title, index);
+  return `item-${index + 1}`;
+};
+
+const extractItemText = (item) => {
+  if (!item) return '';
+  const rawParts = [
+    item.content,
+    item.summary,
+    item.short_description,
+    item.description,
+    item.text,
+    item.title
+  ];
+
+  const parts = rawParts.flatMap((segment) => {
+    if (!segment) return [];
+    if (Array.isArray(segment)) {
+      return segment.filter((value) => typeof value === 'string');
+    }
+    if (typeof segment === 'string') {
+      return [segment];
+    }
+    return [];
+  });
+
+  return parts
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0)
+    .join('\n\n');
+};
+
+const buildDatasetLookup = (dataset = []) => {
+  const byId = new Map();
+  dataset.forEach((item, index) => {
+    const id = buildStableId(item, index);
+    const normalized = normalizeLabel(id);
+    if (!byId.has(normalized)) {
+      byId.set(normalized, { item, index, id });
+    }
+  });
+  return { byId };
+};
+
+export const calculateDistanceMatrix = async (dataset, options = {}) => {
+  if (!Array.isArray(dataset) || dataset.length === 0) {
+    return null;
+  }
+
+  const { preprocess = true, distanceMetric = 'cosine' } = options;
+  const documents = dataset.map((item, index) => ({
+    id: buildStableId(item, index),
+    content: extractItemText(item) || (item?.title ? String(item.title) : '') || `Document ${index + 1}`,
+    metadata: {
+      title: item?.title ?? null,
+      category: item?.category ?? item?.topic ?? null,
+      published_at: item?.published_at ?? item?.date ?? null,
+      source: item?.source ?? item?.url ?? null
+    }
+  }));
+
+  let response;
   try {
-    const response = await fetch('http://localhost:8001/api/v1/tree/reconstruct', {
+    response = await fetch(PIPELINE_ENDPOINT, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        distance_matrix: distanceData.matrix,
-        labels: distanceData.labels
-      }),
+        documents,
+        preprocess,
+        distance_metric: distanceMetric,
+        algorithm: 'neighbor_joining'
+      })
     });
+  } catch (error) {
+    throw new Error(`Failed to reach backend pipeline at ${PIPELINE_ENDPOINT}: ${error.message}`);
+  }
+
+  if (!response.ok) {
+    const message = `Failed to compute embedding distances (${response.status})`;
+    throw new Error(message);
+  }
+
+  const pipeline = await response.json();
+
+  return {
+    matrix: pipeline.distance_matrix ?? [],
+    labels: pipeline.labels ?? documents.map((doc) => doc.id),
+    articles: dataset,
+    pipeline
+  };
+};
+
+export const fetchNeighborJoiningTree = async (distanceData, currentDataset = []) => {
+  if (!distanceData) return null;
+
+  const dataset = Array.isArray(currentDataset) ? currentDataset : [];
+  const { byId } = buildDatasetLookup(dataset);
+
+  let treeStructure = distanceData?.pipeline?.tree_structure;
+  let statistics = distanceData?.pipeline?.statistics ?? null;
+  let newick = distanceData?.pipeline?.newick ?? null;
+  let labels = distanceData?.pipeline?.labels ?? distanceData?.labels ?? [];
+
+  if (!treeStructure) {
+    let response;
+    try {
+      response = await fetch(TREE_RECON_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          distance_matrix: distanceData.matrix,
+          labels: distanceData.labels
+        })
+      });
+    } catch (error) {
+      throw new Error(`Failed to reach tree reconstruction endpoint at ${TREE_RECON_ENDPOINT}: ${error.message}`);
+    }
 
     if (!response.ok) {
-      throw new Error('Failed to reconstruct tree');
+      const message = `Failed to reconstruct tree (${response.status})`;
+      throw new Error(message);
     }
 
     const result = await response.json();
-
-    // Parse the tree structure and convert to D3 hierarchy format
-    const parseNJTree = (node, parent = null) => {
-      const d3Node = {
-        name: node.label || node.id,
-        id: node.id,
-        distance: node.distance || 0,
-        length: node.distance || 0,
-        category: null,
-        error: Math.random() * 0.5,
-        qualityScore: 1 - Math.random() * 0.5
-      };
-
-      // If it's a leaf node, try to find the category from dataset
-      if (node.is_leaf) {
-        const article = currentDataset.find(a =>
-          a.title?.substring(0, 30) === node.label ||
-          a.id === node.label
-        );
-        if (article) {
-          d3Node.category = article.category;
-          d3Node.fullTitle = article.title;
-          d3Node.date = article.date;
-          d3Node.article = article;
-        }
-      }
-
-      if (node.children && node.children.length > 0) {
-        d3Node.children = node.children.map(child => parseNJTree(child, d3Node));
-      }
-
-      return d3Node;
-    };
-
-    const treeRoot = parseNJTree(result.tree_structure);
-
-    return {
-      root: treeRoot,
-      statistics: result.statistics,
-      newick: result.newick,
-      distanceMatrix: distanceData.matrix,
-      labels: distanceData.labels,
-      articles: distanceData.articles
-    };
-  } catch (error) {
-    console.error("Error reconstructing tree:", error);
-    throw error;
+    treeStructure = result.tree_structure;
+    statistics = result.statistics ?? statistics;
+    newick = result.newick ?? newick;
+    labels = distanceData.labels ?? labels;
   }
+
+  if (!treeStructure) {
+    throw new Error('Tree structure unavailable');
+  }
+
+  const parseNJTree = (node) => {
+    const nodeLabel = node.label ?? node.id ?? null;
+    const normalized = normalizeLabel(nodeLabel);
+    const datasetEntry = byId.get(normalized);
+
+    const displayName = datasetEntry?.item?.title
+      ?? datasetEntry?.item?.headline
+      ?? nodeLabel
+      ?? datasetEntry?.id;
+
+    const stableId = datasetEntry?.id ?? (nodeLabel ? String(nodeLabel) : displayName);
+    const branchLength = node.length ?? node.distance ?? node.branch_length ?? 0;
+
+    const d3Node = {
+      name: stableId,
+      id: stableId,
+      displayName,
+      distance: branchLength,
+      length: branchLength,
+      category: datasetEntry?.item?.category ?? datasetEntry?.item?.topic ?? null,
+      error: 0,
+      qualityScore: 0,
+      article: datasetEntry?.item ?? null,
+      publishedAt: datasetEntry?.item?.published_at ?? datasetEntry?.item?.date ?? null,
+      source: datasetEntry?.item?.source ?? datasetEntry?.item?.url ?? null
+    };
+
+    if (node.children && node.children.length > 0) {
+      d3Node.children = node.children.map(parseNJTree);
+    }
+
+    return d3Node;
+  };
+
+  const treeRoot = parseNJTree(treeStructure);
+
+  return {
+    root: treeRoot,
+    statistics,
+    newick,
+    distanceMatrix: distanceData.matrix,
+    labels,
+    articles: distanceData.articles,
+    pipeline: distanceData.pipeline
+  };
+};
+
+const collectLeafMetadata = (root) => {
+  const leaves = [];
+  const leafMap = new Map();
+
+  const traverse = (node, ancestors = [], distanceFromRoot = 0) => {
+    const nodeLength = node.length ?? node.distance ?? 0;
+    const currentDistance = ancestors.length === 0 ? 0 : distanceFromRoot;
+    const nextAncestors = ancestors.concat([{
+      node,
+      distanceFromRoot: currentDistance
+    }]);
+
+    if (!node.children || node.children.length === 0) {
+      const leafInfo = {
+        node,
+        id: node.id,
+        name: node.name,
+        distanceFromRoot: currentDistance,
+        ancestors: nextAncestors
+      };
+      leaves.push(leafInfo);
+      leafMap.set(normalizeLabel(node.name || node.id), leafInfo);
+      return;
+    }
+
+    node.children.forEach((child) => {
+      const childLength = child.length ?? child.distance ?? 0;
+      traverse(child, nextAncestors, currentDistance + childLength);
+    });
+  };
+
+  traverse(root, [], 0);
+
+  return { leaves, leafMap };
+};
+
+const computeLeafPairDistance = (leafA, leafB) => {
+  const ancestorsA = leafA.ancestors;
+  const ancestorsB = leafB.ancestors;
+  const maxDepth = Math.min(ancestorsA.length, ancestorsB.length);
+
+  let lcaDistance = 0;
+  for (let k = 0; k < maxDepth; k += 1) {
+    if (ancestorsA[k].node === ancestorsB[k].node) {
+      lcaDistance = ancestorsA[k].distanceFromRoot;
+    } else {
+      break;
+    }
+  }
+
+  return Math.max(0, leafA.distanceFromRoot + leafB.distanceFromRoot - 2 * lcaDistance);
+};
+
+export const computeTreeLeafDistanceMatrix = (root, orderedLabels = null) => {
+  if (!root) {
+    return { matrix: [], labels: [], leaves: [] };
+  }
+
+  const { leaves, leafMap } = collectLeafMetadata(root);
+
+  let orderedLeaves = leaves;
+  let labels = leaves.map((leaf) => leaf.name);
+
+  if (Array.isArray(orderedLabels) && orderedLabels.length) {
+    const temp = [];
+    orderedLabels.forEach((label) => {
+      const normalized = normalizeLabel(label);
+      const leaf = leafMap.get(normalized);
+      if (leaf) {
+        temp.push(leaf);
+      }
+    });
+    if (temp.length === leaves.length) {
+      orderedLeaves = temp;
+      labels = orderedLabels.slice();
+    }
+  }
+
+  const n = orderedLeaves.length;
+  const matrix = Array.from({ length: n }, () => Array(n).fill(0));
+
+  for (let i = 0; i < n; i += 1) {
+    matrix[i][i] = 0;
+    for (let j = i + 1; j < n; j += 1) {
+      const distance = computeLeafPairDistance(orderedLeaves[i], orderedLeaves[j]);
+      matrix[i][j] = distance;
+      matrix[j][i] = distance;
+    }
+  }
+
+  return { matrix, labels, leaves: orderedLeaves };
 };
 
 // Helper functions for tree visualization

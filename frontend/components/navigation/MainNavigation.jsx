@@ -18,6 +18,7 @@ import {
   FiBarChart,
   FiGitBranch,
   FiLayers,
+  FiMap
 } from 'react-icons/fi';
 
 // Tab configuration with icons and descriptions
@@ -30,11 +31,11 @@ export const MAIN_NAVIGATION_TABS = [
     color: 'blue.600',
   },
   {
-    id: 'quality-inspector',
-    label: 'Quality Inspector',
-    icon: FiSearch,
-    description: 'Interactive Tree Quality Analysis',
-    color: 'purple.600',
+    id: 'neighborhood-preservation',
+    label: 'Neighborhood Preservation',
+    icon: FiMap,
+    description: 'JDK/SDK k-NN preservation on tree',
+    color: 'teal.600',
   },
   {
     id: 'aggregated-errors',
@@ -49,13 +50,6 @@ export const MAIN_NAVIGATION_TABS = [
     icon: FiGitBranch,
     description: 'Global Missing Neighbors Analysis',
     color: 'green.600',
-  },
-  {
-    id: 'compare-projections',
-    label: 'Compare Projections',
-    icon: FiLayers,
-    description: 'Projection Method Comparison',
-    color: 'red.600',
   },
 ];
 

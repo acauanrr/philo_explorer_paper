@@ -14,10 +14,11 @@ Phylo Explorer is a comprehensive web application for visualizing and analyzing 
 
 ### Visualization Tabs
 1. **Data Input**: Configure and load datasets with validation
-2. **Quality Inspector**: Interactive tree visualization with quality metrics
-3. **Aggregated Errors**: Statistical analysis of projection errors
-4. **Missing Neighbors**: Analysis of missing neighbor relationships between datasets
-5. **Compare Projections**: Side-by-side comparison of different projection methods
+2. **Neighborhood Preservation**: JDK/SDK neighborhood preservation metrics on the NJ tree, enhanced with Voronoi overlays, word cloud insights, and a Theme River timeline
+3. **Quality Inspector**: Interactive tree visualization with quality metrics
+4. **Aggregated Errors**: Statistical analysis of projection errors
+5. **Missing Neighbors**: Analysis of missing neighbor relationships between datasets
+6. **Compare Projections**: Side-by-side comparison of different projection methods
 
 ## 🏗️ Architecture
 
@@ -42,14 +43,16 @@ frontend/
 │   │   ├── AggregatedErrorTreeView.jsx    # Error aggregation view
 │   │   ├── CompareProjectionsTreeView.jsx # Projection comparison
 │   │   ├── MissingNeighborsTreeView.jsx   # Missing neighbors analysis
+│   │   ├── NeighborhoodPreservationTreeView.jsx # JDK/SDK neighborhood metrics
 │   │   └── shepard.ts                     # Shepard diagram utilities
 │   ├── context/
 │   │   └── PhyloContext.jsx    # Global state management
 │   └── utils/
-│       ├── treeUtils.js        # Tree generation utilities
+│       ├── treeRenderer.js     # Shared D3 radial tree renderer
+│       ├── treeUtils.js        # Backend pipeline & tree utilities
 │       └── incrementalTreeUtils.js  # Incremental tree construction
 └── public/
-    ├── datasets/               # Sample datasets
+    ├── datasets/               # Sample datasets (e.g., Climate Change News T1/T2)
     └── vis/tree-of-life/      # D3.js tree visualization library
 ```
 

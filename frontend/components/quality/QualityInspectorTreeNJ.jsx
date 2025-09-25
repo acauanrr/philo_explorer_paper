@@ -49,7 +49,6 @@ import {
   createColorScales
 } from "../../src/utils/treeUtils";
 import {
-  constructIncrementalTree,
   analyzeDatasetDifferences,
   calculateTreeSimilarity
 } from "../../src/utils/incrementalTreeUtils";
@@ -150,7 +149,7 @@ const QualityInspectorTreeNJ = () => {
       setIsLoading(true);
       try {
         // Load T1 tree - use all nodes
-        const distanceDataT1 = calculateDistanceMatrix(currentDataset);
+        const distanceDataT1 = await calculateDistanceMatrix(currentDataset);
         const treeResultT1 = await fetchNeighborJoiningTree(distanceDataT1, currentDataset);
 
         if (treeResultT1) {
@@ -163,24 +162,19 @@ const QualityInspectorTreeNJ = () => {
             const differences = analyzeDatasetDifferences(currentDataset, comparisonDataset);
             console.log('Dataset differences:', differences);
 
-            // Construct T2 incrementally from T1
-            const treeResultT2 = await constructIncrementalTree(
-              treeResultT1,
-              currentDataset,
-              comparisonDataset
-            );
+            const distanceDataT2 = await calculateDistanceMatrix(comparisonDataset);
+            const treeResultT2 = await fetchNeighborJoiningTree(distanceDataT2, comparisonDataset);
 
-            if (treeResultT2) {
-              setTreeDataT2({ root: treeResultT2.root, changeType: treeResultT2.changeType });
+            if (treeResultT2?.root) {
+              setTreeDataT2(treeResultT2);
               const metricsT2 = calculateQualityMetrics(treeResultT2.root, comparisonDataset.length);
 
-              // Calculate similarity between trees
               const similarity = calculateTreeSimilarity(treeResultT1.root, treeResultT2.root);
               const comparison = {
                 similarity,
                 differenceCount: differences.summary.addedCount + differences.summary.removedCount,
                 commonNodes: differences.summary.unchangedCount,
-                changeType: treeResultT2.changeType
+                changeType: differences.type
               };
 
               setQualityMetrics({

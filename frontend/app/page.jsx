@@ -13,9 +13,8 @@ import {
 import { PhyloProvider } from "../src/context/PhyloContext";
 import AggregatedErrorTreeView from "../src/components/quality/AggregatedErrorTreeView";
 import MissingNeighborsTreeView from "../src/components/quality/MissingNeighborsTreeView";
-import CompareProjectionsTreeView from "../src/components/quality/CompareProjectionsTreeView";
+import NeighborhoodPreservationTreeView from "../src/components/quality/NeighborhoodPreservationTreeView";
 import DatasetSelector from "../components/dataset/DatasetSelector";
-import QualityInspectorTreeNJ from "../components/quality/QualityInspectorTreeNJ";
 import { MainNavigation, NavigationTabPanel } from "../components/navigation/MainNavigation";
 import { AppHeader } from "../components/layout/AppHeader";
 
@@ -64,9 +63,9 @@ function HomeContent() {
             </Box>
           </NavigationTabPanel>
 
-          {/* Quality Inspector Tab */}
+          {/* Neighborhood Preservation Tab */}
           <NavigationTabPanel>
-            <QualityInspectorTreeNJ />
+            <NeighborhoodPreservationTreeView />
           </NavigationTabPanel>
 
           {/* Aggregated Errors Tab */}
@@ -77,11 +76,6 @@ function HomeContent() {
           {/* Missing Neighbors Tab */}
           <NavigationTabPanel>
             <MissingNeighborsTreeView />
-          </NavigationTabPanel>
-
-          {/* Compare Projections Tab */}
-          <NavigationTabPanel>
-            <CompareProjectionsTreeView />
           </NavigationTabPanel>
         </MainNavigation>
       </GridItem>

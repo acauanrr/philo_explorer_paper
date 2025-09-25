@@ -41,6 +41,10 @@ export const PhyloProvider = ({ children }) => {
   // Projection data for Phase 3 components
   const [projectionData, setProjectionData] = useState(null);
   const [cacheKey, setCacheKey] = useState(null);
+  const [projectionQuality, setProjectionQuality] = useState({
+    t1: null,
+    t2: null
+  });
 
   // Phase 3 states
   const [phiGlobal, setPhiGlobal] = useState(0.05);
@@ -146,6 +150,7 @@ export const PhyloProvider = ({ children }) => {
     });
     setProjectionData(null);
     setCacheKey(null);
+    setProjectionQuality({ t1: null, t2: null });
     setPhiGlobal(0.05);
     setEdgesGlobal(null);
     setComparisons(null);
@@ -177,6 +182,8 @@ export const PhyloProvider = ({ children }) => {
     loadProjectionData,
     cacheKey,
     setCacheKey,
+    projectionQuality,
+    setProjectionQuality,
 
     // Phase 3 states
     phiGlobal,

@@ -160,7 +160,7 @@ const addNodesToTree = async (treeT1, datasetT1, datasetT2, newNodes) => {
 
   // Calculate distance matrix for the combined dataset
   const combinedDataset = [...datasetT1, ...newNodes];
-  const distanceData = calculateDistanceMatrix(combinedDataset);
+  const distanceData = await calculateDistanceMatrix(combinedDataset);
 
   // For each new node, find its optimal position in the tree
   for (const newNode of newNodes) {
@@ -232,7 +232,7 @@ const updateTreeWithModifications = async (treeT1, datasetT1, datasetT2, modific
   const newTree = JSON.parse(JSON.stringify(treeT1.root));
 
   // Recalculate distance matrix with updated content
-  const distanceData = calculateDistanceMatrix(datasetT2);
+  const distanceData = await calculateDistanceMatrix(datasetT2);
 
   // Update node positions based on new distances
   const updateNodeContent = (node) => {
@@ -302,7 +302,7 @@ const handleMixedChanges = async (treeT1, datasetT1, datasetT2, differences) => 
  * Rebuild entire tree when changes are too complex
  */
 const rebuildEntireTree = async (dataset) => {
-  const distanceData = calculateDistanceMatrix(dataset);
+  const distanceData = await calculateDistanceMatrix(dataset);
   const treeResult = await fetchNeighborJoiningTree(distanceData, dataset);
 
   return {

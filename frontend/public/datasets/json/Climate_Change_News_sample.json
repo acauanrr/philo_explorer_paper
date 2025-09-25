@@ -1,0 +1,137 @@
+[
+  {
+    "id": "ccn-001",
+    "title": "U.N. warns window to meet Paris climate goals is closing fast",
+    "summary": "The latest IPCC synthesis report states that global greenhouse gas emissions must peak before 2025 to keep warming below 1.5°C.",
+    "content": "Scientists compiling the Intergovernmental Panel on Climate Change synthesis report concluded that current pledges leave the planet on track for 2.7°C of warming. They urge faster deployment of renewables, a rapid phase-out of unabated fossil fuels, and scaled-up adaptation finance for vulnerable regions.",
+    "source": "IPCC Press Briefing",
+    "url": "https://www.ipcc.ch/report/ar6-synthesis-report",
+    "published_at": "2023-03-20"
+  },
+  {
+    "id": "ccn-002",
+    "title": "Record-breaking heatwave scorches Western Europe",
+    "summary": "France, Spain, and the U.K. recorded temperatures above 40°C, straining power grids and health systems.",
+    "content": "Meteorological agencies linked the heatwave to a persistent high-pressure system intensified by climate change. Emergency cooling centers opened in London, while French authorities limited water usage in drought-stricken regions to protect crops and hydropower production.",
+    "source": "European Climate Observatory",
+    "url": "https://climate-observatory.eu/heatwave-july-2023",
+    "published_at": "2023-07-19"
+  },
+  {
+    "id": "ccn-003",
+    "title": "Australia announces 82% renewable electricity target by 2030",
+    "summary": "Canberra unveiled a roadmap combining offshore wind auctions and grid-scale storage incentives to accelerate the energy transition.",
+    "content": "The Australian Energy Market Operator expects 40 GW of new wind and solar projects to connect this decade. The plan earmarks funding for transmission upgrades, while Indigenous communities will receive equity stakes in approved projects.",
+    "source": "Australian Energy Market Operator",
+    "url": "https://aemo.com.au/renewable-transition-roadmap",
+    "published_at": "2023-11-02"
+  },
+  {
+    "id": "ccn-004",
+    "title": "Loss and damage fund secures $12 billion at COP28",
+    "summary": "Donor nations pledged fresh capital to help vulnerable countries recover from climate-fueled disasters.",
+    "content": "During the first week of the COP28 summit in Dubai, negotiators finalized governance rules for the loss and damage fund. Initial contributions came from the EU, UAE, and Canada, focusing on financing resilient infrastructure, disaster risk insurance, and early-warning systems.",
+    "source": "COP28 Presidency",
+    "url": "https://www.cop28.com/en/press/loss-and-damage-announcement",
+    "published_at": "2023-12-05"
+  },
+  {
+    "id": "ccn-005",
+    "title": "Amazon deforestation falls 56% after enforcement push",
+    "summary": "Brazilian satellite data shows a sharp decline in forest clearing during the first half of 2024.",
+    "content": "The National Institute for Space Research tracked 1,200 km² of deforestation, compared with 2,700 km² a year earlier. The environment ministry credited stepped-up fines, confiscated equipment, and community forest agreements for the turnaround.",
+    "source": "Instituto Nacional de Pesquisas Espaciais",
+    "url": "https://inpe.br/alerts/amazon-2024",
+    "published_at": "2024-06-14"
+  },
+  {
+    "id": "ccn-006",
+    "title": "Pacific nations adopt shared climate adaptation framework",
+    "summary": "Island states endorsed a coordinated plan for coastal resilience, freshwater security, and managed retreat.",
+    "content": "The framework prioritizes elevating critical infrastructure, investing in floating solar, and financing community relocation where sea-level rise threatens habitability. Development banks and philanthropic partners pledged technical support and concessional loans.",
+    "source": "Pacific Islands Forum",
+    "url": "https://www.forumsec.org/pacific-adaptation-framework",
+    "published_at": "2024-05-09"
+  },
+  {
+    "id": "ccn-007",
+    "title": "Global carbon market transactions hit $949 billion",
+    "summary": "The annual State of Carbon Pricing report recorded a 164% increase in traded volumes, driven by EU ETS reforms.",
+    "content": "Experts noted that a tighter cap and the phase-out of free allowances boosted EUA prices above €90 per tonne. Voluntary carbon markets remained volatile, but new integrity guidelines aim to improve credit quality.",
+    "source": "World Bank State of Carbon Pricing",
+    "url": "https://openknowledge.worldbank.org/handle/10986/40369",
+    "published_at": "2024-05-30"
+  },
+  {
+    "id": "ccn-008",
+    "title": "Flood barriers protect Venice during historic storm surge",
+    "summary": "For the first time, the MOSE system was deployed for 48 consecutive hours, preventing catastrophic flooding in the lagoon city.",
+    "content": "The infrastructure, designed after record tides in 2019, shielded St. Mark's Square while wave heights exceeded previous benchmarks. Engineers will analyze sediment transport impacts to refine operating protocols.",
+    "source": "Italian Civil Protection Department",
+    "url": "https://www.protezionecivile.gov.it/mose-operations-nov-2023",
+    "published_at": "2023-11-28"
+  },
+  {
+    "id": "ccn-009",
+    "title": "Battery recycling hub breaks ground in Michigan",
+    "summary": "The facility aims to recover lithium, cobalt, and nickel from end-of-life EV packs, closing the loop for domestic supply chains.",
+    "content": "Developers expect to process 120,000 metric tons annually using hydrometallurgical methods with a 95% material recovery rate. Federal tax credits will support construction, while automakers signed feedstock agreements.",
+    "source": "U.S. Department of Energy",
+    "url": "https://www.energy.gov/articles/midwest-battery-recycling-hub",
+    "published_at": "2024-02-21"
+  },
+  {
+    "id": "ccn-010",
+    "title": "Kenya completes largest geothermal expansion in a decade",
+    "summary": "A new 83 MW unit at Olkaria boosts the country's renewable share above 90% of electricity generation.",
+    "content": "KenGen reported that geothermal output now offsets 500,000 tonnes of CO2 annually. The project includes community benefit agreements covering water access, health clinics, and education scholarships.",
+    "source": "KenGen",
+    "url": "https://kengen.co.ke/olkaria-unit-6-commissioning",
+    "published_at": "2024-01-17"
+  },
+  {
+    "id": "ccn-011",
+    "title": "US wildfire season off to early start amid prolonged drought",
+    "summary": "Satellite imagery detected 3,200 active fire hotspots across California, Nevada, and Oregon in May.",
+    "content": "The National Interagency Fire Center raised preparedness levels, citing vegetation stress and low snowpack. Fire crews deployed experimental AI-enabled lookout towers to speed detection and evacuation alerts.",
+    "source": "National Interagency Fire Center",
+    "url": "https://www.nifc.gov/newsroom/early-2024-season",
+    "published_at": "2024-05-18"
+  },
+  {
+    "id": "ccn-012",
+    "title": "Norway launches carbon capture network for North Sea industry",
+    "summary": "The Northern Lights project began transporting captured CO2 from continental Europe for permanent storage offshore.",
+    "content": "Operators Equinor, Shell, and TotalEnergies plan to store 5 million tonnes per year by 2026. The first shipment originated from a cement plant in Germany, highlighting cross-border cooperation enabled by EU funding.",
+    "source": "Northern Lights CCS",
+    "url": "https://northernlightsccs.com/news/first-co2-shipment",
+    "published_at": "2024-04-11"
+  },
+  {
+    "id": "ccn-013",
+    "title": "Scientists map accelerating Antarctic ice shelf fractures",
+    "summary": "New radar measurements reveal crevasse networks widening 30% faster than a decade ago on the Thwaites Glacier front.",
+    "content": "Researchers warn that structural weakening could lead to large-scale calving events, raising global sea-level projections. The study uses data from ESA's Sentinel-1 constellation combined with autonomous surface vehicles.",
+    "source": "British Antarctic Survey",
+    "url": "https://www.bas.ac.uk/media-post/antarctic-fracture-maps",
+    "published_at": "2024-03-07"
+  },
+  {
+    "id": "ccn-014",
+    "title": "India's rooftop solar program hits 25 GW milestone",
+    "summary": "Subsidies and net-metering reforms accelerated installations across residential and commercial sectors.",
+    "content": "The Ministry of New and Renewable Energy credits simplified permitting portals and concessional loans for doubling capacity in two years. Discoms are piloting virtual net-metering to include apartment dwellers.",
+    "source": "Ministry of New and Renewable Energy (India)",
+    "url": "https://mnre.gov.in/rooftop-solar-progress",
+    "published_at": "2024-03-22"
+  },
+  {
+    "id": "ccn-015",
+    "title": "Agritech startups deploy regenerative practices on 5 million acres",
+    "summary": "A cohort of soil-health ventures backed by the Kaggle Climate Change News dataset partners reported rapid adoption of cover cropping and precision grazing.",
+    "content": "Startups offer satellite monitoring, carbon credit verification, and long-term purchase agreements for climate-smart commodities. Farmers cite yield resilience during drought years and improved soil organic carbon levels.",
+    "source": "Climate Impact Ventures",
+    "url": "https://climateimpactventures.org/regenerative-update",
+    "published_at": "2024-04-30"
+  }
+]

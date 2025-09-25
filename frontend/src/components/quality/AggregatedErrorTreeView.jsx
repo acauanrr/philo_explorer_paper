@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import {
   Box,
@@ -43,20 +43,29 @@ import {
 import { usePhylo } from "../../context/PhyloContext";
 import {
   calculateDistanceMatrix,
-  fetchNeighborJoiningTree,
-  createTreeLayout,
-  createColorScales,
-  linkStep
+  fetchNeighborJoiningTree
 } from "../../utils/treeUtils";
 import {
-  constructIncrementalTree,
-  analyzeDatasetDifferences
-} from "../../utils/incrementalTreeUtils";
+  renderRadialTree,
+  defaultTreeTheme
+} from "../../utils/treeRenderer";
+import {
+  computeProjectionErrorMetrics,
+  computeComparisonMetrics
+} from "../../utils/projectionMetrics";
+
+const normalizeLabel = (label) => (label ?? "").toString().trim();
+const formatNumber = (value, digits = 4) => (Number.isFinite(value) ? value.toFixed(digits) : (0).toFixed(digits));
 
 const AggregatedErrorTreeView = () => {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
-  const { currentDataset, comparisonDataset } = usePhylo();
+  const {
+    currentDataset,
+    comparisonDataset,
+    projectionQuality,
+    setProjectionQuality
+  } = usePhylo();
   const toast = useToast();
 
   // Tree data for both datasets
@@ -71,133 +80,14 @@ const AggregatedErrorTreeView = () => {
   const [selectedNode, setSelectedNode] = useState(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
-  // Aggregated errors for both datasets
-  const [aggregatedErrors, setAggregatedErrors] = useState({
-    t1: {
-      meanError: 0,
-      stdError: 0,
-      maxError: 0,
-      minError: 1,
-      errorDistribution: [],
-      totalPoints: 0
-    },
-    t2: {
-      meanError: 0,
-      stdError: 0,
-      maxError: 0,
-      minError: 1,
-      errorDistribution: [],
-      totalPoints: 0
-    },
-    comparison: {
-      errorDifference: 0,
-      improvementRatio: 0,
-      correlationCoeff: 0
-    }
+  const [errorData, setErrorData] = useState({
+    t1: projectionQuality?.t1 ?? null,
+    t2: projectionQuality?.t2 ?? null,
+    comparison: null
   });
 
   const bgColor = useColorModeValue("white", "gray.800");
   const textColor = useColorModeValue("gray.700", "gray.200");
-
-  // Calculate aggregated projection errors for a tree
-  const calculateAggregatedErrors = useCallback((treeRoot, distanceMatrix) => {
-    if (!treeRoot || !distanceMatrix) return null;
-
-    let totalError = 0;
-    let errorCount = 0;
-    let maxError = 0;
-    let minError = 1;
-    const errors = [];
-    const nodeErrors = new Map();
-
-    // Calculate pairwise errors based on distance matrix
-    const leafNodes = [];
-    const collectLeaves = (node, index = 0) => {
-      if (!node.children) {
-        leafNodes.push({ node, index: leafNodes.length });
-      } else {
-        node.children.forEach(child => collectLeaves(child));
-      }
-    };
-    collectLeaves(treeRoot);
-
-    // Calculate tree distance between leaves
-    const calculateTreeDistance = (node1, node2) => {
-      // Simplified tree distance calculation
-      return Math.random() * 0.5; // Would be replaced with actual tree distance
-    };
-
-    // Calculate projection errors
-    leafNodes.forEach((leaf1, i) => {
-      leafNodes.forEach((leaf2, j) => {
-        if (i < j && distanceMatrix[i] && distanceMatrix[i][j] !== undefined) {
-          const originalDist = distanceMatrix[i][j];
-          const treeDist = calculateTreeDistance(leaf1.node, leaf2.node);
-          const error = Math.abs(originalDist - treeDist) / originalDist;
-
-          errors.push(error);
-          totalError += error;
-          errorCount++;
-          maxError = Math.max(maxError, error);
-          minError = Math.min(minError, error);
-
-          // Store error for each node
-          if (!nodeErrors.has(leaf1.node.name)) nodeErrors.set(leaf1.node.name, []);
-          if (!nodeErrors.has(leaf2.node.name)) nodeErrors.set(leaf2.node.name, []);
-          nodeErrors.get(leaf1.node.name).push(error);
-          nodeErrors.get(leaf2.node.name).push(error);
-        }
-      });
-    });
-
-    // Calculate average error per node
-    leafNodes.forEach(({ node }) => {
-      const nodeErrorList = nodeErrors.get(node.name) || [];
-      const avgError = nodeErrorList.length > 0
-        ? nodeErrorList.reduce((a, b) => a + b) / nodeErrorList.length
-        : 0;
-      node.projectionError = avgError;
-      node.errorLevel = avgError > 0.3 ? "high" : avgError > 0.15 ? "medium" : "low";
-    });
-
-    const meanError = errorCount > 0 ? totalError / errorCount : 0;
-    const variance = errors.length > 0
-      ? errors.reduce((acc, err) => acc + Math.pow(err - meanError, 2), 0) / errors.length
-      : 0;
-    const stdError = Math.sqrt(variance);
-
-    // Create error distribution for histogram
-    const errorBins = d3.histogram()
-      .domain([0, maxError > 0 ? maxError : 0.5])
-      .thresholds(10);
-
-    const errorDistribution = errorBins(errors);
-
-    return {
-      meanError,
-      stdError,
-      maxError,
-      minError,
-      errorDistribution,
-      totalPoints: errorCount,
-      errors
-    };
-  }, []);
-
-  // Compare error metrics between two datasets
-  const compareErrorMetrics = useCallback((errorsT1, errorsT2) => {
-    if (!errorsT1 || !errorsT2) return { errorDifference: 0, improvementRatio: 0, correlationCoeff: 0 };
-
-    const errorDifference = Math.abs(errorsT1.meanError - errorsT2.meanError);
-    const improvementRatio = errorsT1.meanError > 0
-      ? ((errorsT1.meanError - errorsT2.meanError) / errorsT1.meanError) * 100
-      : 0;
-
-    // Simple correlation coefficient (would need actual paired errors for real calculation)
-    const correlationCoeff = 0.75 + Math.random() * 0.25; // Simulated
-
-    return { errorDifference, improvementRatio, correlationCoeff };
-  }, []);
 
   // Load trees for both datasets
   useEffect(() => {
@@ -206,47 +96,76 @@ const AggregatedErrorTreeView = () => {
 
       setIsLoading(true);
       try {
-        // Load T1 tree - use all nodes
-        const distanceDataT1 = calculateDistanceMatrix(currentDataset);
+        const distanceDataT1 = await calculateDistanceMatrix(currentDataset);
         const treeResultT1 = await fetchNeighborJoiningTree(distanceDataT1, currentDataset);
 
+        let metricsT1 = null;
         if (treeResultT1) {
-          setTreeDataT1(treeResultT1);
-          const errorsT1 = calculateAggregatedErrors(treeResultT1.root, distanceDataT1.matrix);
-
-          // Load T2 tree incrementally if available
-          if (comparisonDataset) {
-            // Analyze differences
-            const differences = analyzeDatasetDifferences(currentDataset, comparisonDataset);
-
-            // Construct T2 incrementally from T1
-            const treeResultT2 = await constructIncrementalTree(
-              treeResultT1,
-              currentDataset,
-              comparisonDataset
-            );
-
-            if (treeResultT2) {
-              setTreeDataT2({ root: treeResultT2.root });
-
-              // Calculate distance matrix for T2 for error calculation
-              const distanceDataT2 = calculateDistanceMatrix(comparisonDataset);
-              const errorsT2 = calculateAggregatedErrors(treeResultT2.root, distanceDataT2.matrix);
-              const comparison = compareErrorMetrics(errorsT1, errorsT2);
-
-              setAggregatedErrors({
-                t1: errorsT1,
-                t2: errorsT2,
-                comparison
-              });
-            }
-          } else {
-            setAggregatedErrors(prev => ({
-              ...prev,
-              t1: errorsT1
-            }));
-          }
+          const enrichedTreeT1 = {
+            ...treeResultT1,
+            labels: treeResultT1.labels ?? distanceDataT1.labels,
+            distanceMatrix: distanceDataT1.matrix
+          };
+          metricsT1 = computeProjectionErrorMetrics(distanceDataT1, enrichedTreeT1);
+          setTreeDataT1(enrichedTreeT1);
+        } else {
+          setTreeDataT1(null);
         }
+
+        let metricsT2 = null;
+        if (comparisonDataset && comparisonDataset.length > 0) {
+          const distanceDataT2 = await calculateDistanceMatrix(comparisonDataset);
+          const treeResultT2 = await fetchNeighborJoiningTree(distanceDataT2, comparisonDataset);
+
+          if (treeResultT2?.root) {
+            const enrichedTreeT2 = {
+              ...treeResultT2,
+              labels: treeResultT2.labels ?? distanceDataT2.labels,
+              distanceMatrix: distanceDataT2.matrix
+            };
+            metricsT2 = computeProjectionErrorMetrics(distanceDataT2, enrichedTreeT2);
+            setTreeDataT2(enrichedTreeT2);
+          } else {
+            setTreeDataT2(null);
+          }
+        } else {
+          setTreeDataT2(null);
+        }
+
+        setErrorData((prev) => ({
+          ...prev,
+          t1: metricsT1,
+          t2: metricsT2,
+          comparison: metricsT1 && metricsT2 ? computeComparisonMetrics(metricsT1, metricsT2) : null
+        }));
+
+        setProjectionQuality((prev) => {
+          const previous = prev ?? {};
+          const next = { ...previous };
+          let changed = false;
+
+          if (metricsT1) {
+            if (previous.t1 !== metricsT1) {
+              next.t1 = metricsT1;
+              changed = true;
+            }
+          } else if (previous.t1) {
+            next.t1 = null;
+            changed = true;
+          }
+
+          if (metricsT2) {
+            if (previous.t2 !== metricsT2) {
+              next.t2 = metricsT2;
+              changed = true;
+            }
+          } else if (previous.t2) {
+            next.t2 = null;
+            changed = true;
+          }
+
+          return changed ? next : previous;
+        });
       } catch (error) {
         toast({
           title: "Failed to load trees",
@@ -260,7 +179,30 @@ const AggregatedErrorTreeView = () => {
     };
 
     loadTrees();
-  }, [currentDataset, comparisonDataset, toast, calculateAggregatedErrors, compareErrorMetrics]);
+  }, [
+    currentDataset,
+    comparisonDataset,
+    setProjectionQuality,
+    toast
+  ]);
+
+  useEffect(() => {
+    if (!projectionQuality) return;
+
+    setErrorData((prev) => {
+      const updated = {
+        ...prev,
+        t1: projectionQuality.t1 ?? prev.t1,
+        t2: projectionQuality.t2 ?? prev.t2
+      };
+
+      updated.comparison = (updated.t1 && updated.t2)
+        ? computeComparisonMetrics(updated.t1, updated.t2)
+        : null;
+
+      return updated;
+    });
+  }, [projectionQuality]);
 
   // Update dimensions on resize
   useEffect(() => {
@@ -278,253 +220,247 @@ const AggregatedErrorTreeView = () => {
 
   // Render visualization
   useEffect(() => {
-    const treeData = viewMode === "t2" ? treeDataT2 : treeDataT1;
-    const errors = viewMode === "t2" ? aggregatedErrors.t2 : aggregatedErrors.t1;
+    const activeTree = viewMode === "t2" ? treeDataT2 : treeDataT1;
+    const datasetMetrics = viewMode === "t2" ? errorData.t2 : errorData.t1;
 
-    if (!treeData || !treeData.root) return;
+    const svg = d3.select(svgRef.current);
+    svg.selectAll("*").remove();
 
-    const width = dimensions.width;
-    const height = dimensions.height;
-
-    // Clear previous
-    d3.select(svgRef.current).selectAll("*").remove();
-
-    const svg = d3.select(svgRef.current)
-      .attr("width", width)
-      .attr("height", height);
-
-    const { outerRadius, innerRadius } = createTreeLayout(
-      d3.hierarchy(treeData.root),
-      width,
-      height
-    );
-
-    svg.attr("viewBox", [-outerRadius, -outerRadius, width, height]);
-
-    const g = svg.append("g");
-
-    // Zoom behavior
-    const zoom = d3.zoom()
-      .scaleExtent([0.5, 5])
-      .on("zoom", (event) => {
-        g.attr("transform", event.transform);
-      });
-
-    svg.call(zoom);
-
-    // Create hierarchy and layout
-    const root = d3.hierarchy(treeData.root);
-    const cluster = d3.cluster()
-      .size([360, innerRadius])
-      .separation((a, b) => 1);
-
-    cluster(root);
-
-    // Set radius for branch length
-    const setRadius = (d, y0, k) => {
-      d.radius = (y0 += d.data.length || 0) * k;
-      if (d.children) d.children.forEach(child => setRadius(child, y0, k));
-    };
-
-    const maxLength = (d) => {
-      return (d.data.length || 0) + (d.children ? d3.max(d.children, maxLength) : 0);
-    };
-
-    setRadius(root, root.data.length = 0, innerRadius / maxLength(root));
-
-    // Color scale for errors
-    const errorColorScale = d3.scaleSequential(d3.interpolateRdYlGn)
-      .domain([errors.maxError || 0.5, 0]);
-
-    // Draw links with error-based styling
-    const link = g.append("g")
-      .attr("fill", "none")
-      .selectAll("path")
-      .data(root.links())
-      .join("path")
-      .attr("d", d => linkStep(
-        d.source.x,
-        showBranchLength ? d.source.radius : d.source.y,
-        d.target.x,
-        showBranchLength ? d.target.radius : d.target.y
-      ))
-      .attr("stroke", d => {
-        // Color based on average error of descendants
-        const descendants = d.target.descendants().filter(n => !n.children);
-        const avgError = descendants.length > 0
-          ? descendants.reduce((sum, n) => sum + (n.data.projectionError || 0), 0) / descendants.length
-          : 0;
-        return errorVisualization === "heatmap" ? errorColorScale(avgError) : "#999";
-      })
-      .attr("stroke-width", d => {
-        const descendants = d.target.descendants().filter(n => !n.children);
-        const avgError = descendants.length > 0
-          ? descendants.reduce((sum, n) => sum + (n.data.projectionError || 0), 0) / descendants.length
-          : 0;
-        return errorVisualization === "thickness" ? (1 + avgError * 5) : 1.5;
-      })
-      .attr("stroke-opacity", 0.8);
-
-    // Draw nodes
-    const node = g.append("g")
-      .selectAll("g")
-      .data(root.descendants())
-      .join("g")
-      .attr("transform", d => `
-        rotate(${d.x - 90})
-        translate(${showBranchLength ? d.radius : d.y},0)
-      `);
-
-    // Node circles with error visualization
-    node.append("circle")
-      .attr("r", d => {
-        if (!d.children) {
-          const error = d.data.projectionError || 0;
-          return errorVisualization === "nodeSize" ? (3 + error * 10) : 4;
-        }
-        return 2;
-      })
-      .attr("fill", d => {
-        if (!d.children) {
-          const error = d.data.projectionError || 0;
-          return errorColorScale(error);
-        }
-        return "#999";
-      })
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 1)
-      .style("cursor", "pointer")
-      .on("click", (event, d) => {
-        setSelectedNode(d.data);
-      })
-      .on("mouseover", function(event, d) {
-        d3.select(this)
-          .transition()
-          .duration(200)
-          .attr("r", d => d.children ? 3 : 6);
-
-        // Show tooltip
-        const tooltip = d3.select("body").append("div")
-          .attr("class", "tooltip")
-          .style("position", "absolute")
-          .style("visibility", "hidden")
-          .style("background", "white")
-          .style("border", "1px solid #ccc")
-          .style("border-radius", "4px")
-          .style("padding", "8px")
-          .style("font-size", "12px");
-
-        if (d.data.projectionError !== undefined) {
-          tooltip.html(`
-            <strong>${d.data.name}</strong><br/>
-            Error: ${d.data.projectionError.toFixed(3)}<br/>
-            Level: ${d.data.errorLevel}
-          `)
-          .style("visibility", "visible")
-          .style("left", (event.pageX + 10) + "px")
-          .style("top", (event.pageY - 10) + "px");
-        }
-      })
-      .on("mouseout", function(event, d) {
-        d3.select(this)
-          .transition()
-          .duration(200)
-          .attr("r", d => d.children ? 2 : 4);
-
-        d3.selectAll(".tooltip").remove();
-      });
-
-    // Labels
-    if (showLabels) {
-      node.filter(d => !d.children)
-        .append("text")
-        .attr("dy", ".31em")
-        .attr("x", d => d.x < 180 ? 6 : -6)
-        .attr("text-anchor", d => d.x < 180 ? "start" : "end")
-        .attr("transform", d => d.x >= 180 ? "rotate(180)" : null)
-        .text(d => d.data.name ? d.data.name.substring(0, 15) : "")
-        .style("font-size", "9px")
-        .style("fill", textColor);
+    if (!activeTree?.root || !datasetMetrics) {
+      return;
     }
 
-    // Add error scale legend
-    const legendWidth = 200;
-    const legendHeight = 20;
+    const width = Math.max(360, dimensions.width || 0);
+    const height = Math.max(360, dimensions.height || 0);
+    svg.attr("width", width).attr("height", height);
 
-    const legend = svg.append("g")
-      .attr("transform", `translate(${-outerRadius + 20}, ${outerRadius - 50})`);
+    const maxErrorRaw = datasetMetrics.stats?.maxError ?? 0.5;
+    const safeMaxError = maxErrorRaw > 1e-6 ? maxErrorRaw : 0.25;
 
-    // Background
-    legend.append("rect")
-      .attr("width", legendWidth + 40)
-      .attr("height", 60)
-      .attr("fill", "white")
-      .attr("stroke", "#ccc")
-      .attr("opacity", 0.9);
+    const errorColorScale = d3.scaleSequential(d3.interpolateRdYlGn)
+      .domain([safeMaxError, 0]);
 
-    // Title
-    legend.append("text")
-      .attr("x", 10)
-      .attr("y", 15)
-      .text(`Error Scale (${viewMode.toUpperCase()})`)
-      .style("font-size", "12px")
-      .style("font-weight", "bold");
+    const thicknessScale = d3.scaleLinear()
+      .domain([0, safeMaxError])
+      .range([1.2, 6]);
 
-    // Gradient
-    const gradientId = `error-gradient-${viewMode}`;
-    const gradient = svg.append("defs")
-      .append("linearGradient")
+    const theme = {
+      ...defaultTreeTheme,
+      label: {
+        ...defaultTreeTheme.label,
+        color: textColor
+      }
+    };
+
+    const selectedLabel = selectedNode
+      ? normalizeLabel(selectedNode.name || selectedNode.id)
+      : null;
+
+    const overlayRoot = viewMode === "comparison" && treeDataT1?.root && treeDataT2?.root
+      ? (activeTree === treeDataT1 ? treeDataT2.root : treeDataT1.root)
+      : null;
+
+    const leafColorAccessor = (node) => {
+      const absError = Math.abs(node.data?.projectionError ?? 0);
+      if (errorVisualization === "heatmap" || errorVisualization === "nodeSize" || errorVisualization === "thickness") {
+        return errorColorScale(absError);
+      }
+      return defaultTreeTheme.leaf.fill;
+    };
+
+    const linkStyler = (link) => {
+      const absError = Math.abs(link.target?.data?.projectionError ?? 0);
+      const style = {};
+
+      if (errorVisualization === "heatmap") {
+        style.stroke = errorColorScale(absError);
+      }
+
+      if (errorVisualization === "thickness") {
+        style.stroke = "rgba(71, 85, 105, 0.85)";
+        style.strokeWidth = thicknessScale(absError);
+      }
+
+      if (selectedLabel) {
+        const targetLabel = normalizeLabel(link.target.data?.name ?? link.target.data?.id);
+        if (targetLabel === selectedLabel) {
+          style.stroke = "#fb923c";
+          style.strokeWidth = (style.strokeWidth ?? 1.8) + 1.4;
+          style.strokeOpacity = 0.95;
+        } else {
+          style.strokeOpacity = style.strokeOpacity ?? 0.35;
+        }
+      }
+
+      return style;
+    };
+
+    const nodeStyler = (node) => {
+      const isLeaf = !node.children || node.children.length === 0;
+      const absError = Math.abs(node.data?.projectionError ?? 0);
+      const style = {};
+
+      if (errorVisualization === "nodeSize" && isLeaf) {
+        style.radius = 4 + Math.min(10, absError * 14);
+      }
+
+      if (selectedLabel) {
+        const label = normalizeLabel(node.data?.name ?? node.data?.id);
+        if (label === selectedLabel) {
+          style.stroke = "#f97316";
+          style.strokeWidth = 2.6;
+          style.opacity = 1;
+        } else {
+          style.opacity = 0.55;
+        }
+      }
+
+      return style;
+    };
+
+    const renderResult = renderRadialTree({
+      svg,
+      rootData: activeTree.root,
+      width,
+      height,
+      theme,
+      showLabels,
+      leafColorAccessor,
+      internalColorAccessor: (node) => {
+        const absError = Math.abs(node.data?.projectionError ?? 0);
+        return errorColorScale(absError);
+      },
+      highlight: {
+        nodes: (node) => {
+          if (!selectedLabel) return false;
+          const label = normalizeLabel(node.data?.name ?? node.data?.id);
+          return label === selectedLabel;
+        }
+      },
+      overlayRoot,
+      linkStyler,
+      nodeStyler,
+      useBranchLengths: showBranchLength,
+      onLeafClick: (node) => setSelectedNode(node.data),
+      onNodeClick: (node) => {
+        if (node.children && node.children.length) {
+          setSelectedNode(node.data);
+        }
+      }
+    });
+
+    const nodeGroup = renderResult.treeGroup.select(".tree-nodes");
+    if (!nodeGroup.empty()) {
+      nodeGroup
+        .selectAll("g")
+        .filter((d) => d && (!d.children || d.children.length === 0))
+        .append("title")
+        .text((d) => {
+          const absError = Math.abs(d?.data?.projectionError ?? 0);
+          const label = d?.data?.displayName ?? d?.data?.name ?? "";
+          return `${label}\nMean error: ${(absError * 100).toFixed(2)}%`;
+        });
+    }
+
+    const defs = svg.append("defs");
+    const gradientId = `agg-error-gradient-${viewMode}`;
+    const gradient = defs.append("linearGradient")
       .attr("id", gradientId);
 
     gradient.selectAll("stop")
       .data([
-        {offset: "0%", color: d3.interpolateRdYlGn(1)},
-        {offset: "50%", color: d3.interpolateRdYlGn(0.5)},
-        {offset: "100%", color: d3.interpolateRdYlGn(0)}
+        { offset: "0%", color: errorColorScale(0) },
+        { offset: "50%", color: errorColorScale(safeMaxError * 0.5) },
+        { offset: "100%", color: errorColorScale(safeMaxError) }
       ])
       .join("stop")
-      .attr("offset", d => d.offset)
-      .attr("stop-color", d => d.color);
+      .attr("offset", (d) => d.offset)
+      .attr("stop-color", (d) => d.color);
+
+    const legend = svg.append("g")
+      .attr("class", "error-legend")
+      .attr("transform", `translate(${20}, ${height - 80})`);
 
     legend.append("rect")
-      .attr("x", 10)
-      .attr("y", 25)
-      .attr("width", legendWidth)
-      .attr("height", legendHeight)
+      .attr("width", 232)
+      .attr("height", 56)
+      .attr("rx", 10)
+      .attr("fill", "rgba(255,255,255,0.92)")
+      .attr("stroke", "rgba(148, 163, 184, 0.6)");
+
+    legend.append("text")
+      .attr("x", 18)
+      .attr("y", 20)
+      .attr("font-size", 12)
+      .attr("font-weight", 600)
+      .text(`Error Scale (${viewMode.toUpperCase()})`);
+
+    legend.append("rect")
+      .attr("x", 18)
+      .attr("y", 26)
+      .attr("width", 190)
+      .attr("height", 12)
       .attr("fill", `url(#${gradientId})`);
 
-    // Scale labels
     legend.append("text")
-      .attr("x", 10)
-      .attr("y", 25 + legendHeight + 12)
-      .text("0")
-      .style("font-size", "10px");
+      .attr("x", 18)
+      .attr("y", 26 + 20)
+      .attr("font-size", 10)
+      .text("0");
 
     legend.append("text")
-      .attr("x", 10 + legendWidth)
-      .attr("y", 25 + legendHeight + 12)
-      .text(errors.maxError.toFixed(2))
-      .style("font-size", "10px")
-      .attr("text-anchor", "end");
+      .attr("x", 18 + 190)
+      .attr("y", 26 + 20)
+      .attr("font-size", 10)
+      .attr("text-anchor", "end")
+      .text(safeMaxError.toFixed(2));
 
-  }, [treeDataT1, treeDataT2, viewMode, dimensions, showBranchLength, errorVisualization, showLabels, textColor, aggregatedErrors]);
+    const treeRootGroup = svg.select(".radial-tree-root");
+    const zoom = d3.zoom()
+      .scaleExtent([0.6, 4])
+      .on("zoom", (event) => {
+        treeRootGroup.attr("transform", `translate(${width / 2}, ${height / 2}) ${event.transform}`);
+      });
+
+    svg.call(zoom);
+    svg.on("dblclick.zoom", null);
+    svg.on("click", (event) => {
+      if (event.target === svg.node()) {
+        setSelectedNode(null);
+      }
+    });
+  }, [
+    treeDataT1,
+    treeDataT2,
+    viewMode,
+    dimensions,
+    showBranchLength,
+    errorVisualization,
+    showLabels,
+    textColor,
+    errorData,
+    selectedNode
+  ]);
 
   // Render error distribution chart
-  const renderErrorDistribution = (errors, dataset) => {
-    if (!errors.errorDistribution || errors.errorDistribution.length === 0) return null;
+  const renderErrorDistribution = (metrics, dataset) => {
+    if (!metrics?.histogram || metrics.histogram.length === 0) return null;
+
+    const totalPairs = metrics.stats?.pairCount ?? 0;
+    if (!totalPairs) return null;
 
     return (
       <Box>
         <Text fontSize="sm" fontWeight="bold" mb={2}>Error Distribution ({dataset})</Text>
         <Box height="100px">
-          {errors.errorDistribution.map((bin, i) => (
+          {metrics.histogram.map((bin, i) => (
             <HStack key={i} spacing={2} mb={1}>
               <Text fontSize="xs" width="60px">
                 {bin.x0?.toFixed(3)}-{bin.x1?.toFixed(3)}
               </Text>
               <Box flex={1}>
                 <Progress
-                  value={(bin.length / errors.totalPoints) * 100}
+                  value={(bin.length / totalPairs) * 100}
                   colorScheme={i < 3 ? "green" : i < 6 ? "yellow" : "red"}
                   size="sm"
                 />
@@ -547,6 +483,9 @@ const AggregatedErrorTreeView = () => {
       </Box>
     );
   }
+
+  const datasetMetrics = viewMode === "t2" ? errorData.t2 : errorData.t1;
+  const comparisonMetrics = errorData.comparison;
 
   return (
     <Box h="full" display="flex">
@@ -607,58 +546,70 @@ const AggregatedErrorTreeView = () => {
             </CardHeader>
             <CardBody>
               {viewMode === "comparison" ? (
-                <VStack spacing={3} align="stretch">
-                  <Stat size="sm">
-                    <StatLabel>Error Improvement</StatLabel>
-                    <StatNumber color={aggregatedErrors.comparison.improvementRatio > 0 ? "green.500" : "red.500"}>
-                      {aggregatedErrors.comparison.improvementRatio > 0 ? "↓" : "↑"}
-                      {Math.abs(aggregatedErrors.comparison.improvementRatio).toFixed(1)}%
-                    </StatNumber>
-                    <StatHelpText>T2 vs T1</StatHelpText>
-                  </Stat>
-                  <HStack justify="space-between">
-                    <Text fontSize="xs">T1 Mean Error:</Text>
-                    <Badge colorScheme="blue">{aggregatedErrors.t1.meanError.toFixed(4)}</Badge>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontSize="xs">T2 Mean Error:</Text>
-                    <Badge colorScheme="purple">{aggregatedErrors.t2.meanError.toFixed(4)}</Badge>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontSize="xs">Correlation:</Text>
-                    <Badge>{aggregatedErrors.comparison.correlationCoeff.toFixed(3)}</Badge>
-                  </HStack>
-                </VStack>
+                comparisonMetrics ? (
+                  <VStack spacing={3} align="stretch">
+                    <Stat size="sm">
+                      <StatLabel>Error Improvement</StatLabel>
+                      <StatNumber color={(comparisonMetrics.improvementRatio ?? 0) > 0 ? "green.500" : "red.500"}>
+                        {(comparisonMetrics.improvementRatio ?? 0) > 0 ? "↓" : "↑"}
+                        {formatNumber(Math.abs(comparisonMetrics.improvementRatio ?? 0), 1)}%
+                      </StatNumber>
+                      <StatHelpText>T2 vs T1</StatHelpText>
+                    </Stat>
+                    <HStack justify="space-between">
+                      <Text fontSize="xs">T1 Mean Error:</Text>
+                      <Badge colorScheme="blue">{formatNumber(errorData.t1?.stats?.meanError)}</Badge>
+                    </HStack>
+                    <HStack justify="space-between">
+                      <Text fontSize="xs">T2 Mean Error:</Text>
+                      <Badge colorScheme="purple">{formatNumber(errorData.t2?.stats?.meanError)}</Badge>
+                    </HStack>
+                    <HStack justify="space-between">
+                      <Text fontSize="xs">Correlation:</Text>
+                      <Badge>{formatNumber(comparisonMetrics.correlationCoeff ?? 0, 3)}</Badge>
+                    </HStack>
+                  </VStack>
+                ) : (
+                  <Text fontSize="sm" color="gray.500">
+                    Comparison metrics will appear once both datasets are processed.
+                  </Text>
+                )
               ) : (
-                <VStack spacing={3} align="stretch">
-                  <Stat size="sm">
-                    <StatLabel>Mean Error</StatLabel>
-                    <StatNumber color={aggregatedErrors[viewMode].meanError < 0.2 ? "green.500" : "orange.500"}>
-                      {aggregatedErrors[viewMode].meanError.toFixed(4)}
-                    </StatNumber>
-                    <Progress
-                      value={aggregatedErrors[viewMode].meanError * 200}
-                      colorScheme={aggregatedErrors[viewMode].meanError < 0.2 ? "green" : "orange"}
-                      size="xs"
-                    />
-                  </Stat>
-                  <HStack justify="space-between">
-                    <Text fontSize="xs">Std Deviation:</Text>
-                    <Badge>{aggregatedErrors[viewMode].stdError.toFixed(4)}</Badge>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontSize="xs">Max Error:</Text>
-                    <Badge colorScheme="red">{aggregatedErrors[viewMode].maxError.toFixed(4)}</Badge>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontSize="xs">Min Error:</Text>
-                    <Badge colorScheme="green">{aggregatedErrors[viewMode].minError.toFixed(4)}</Badge>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontSize="xs">Total Comparisons:</Text>
-                    <Badge>{aggregatedErrors[viewMode].totalPoints}</Badge>
-                  </HStack>
-                </VStack>
+                datasetMetrics ? (
+                  <VStack spacing={3} align="stretch">
+                    <Stat size="sm">
+                      <StatLabel>Mean Error</StatLabel>
+                      <StatNumber color={(datasetMetrics.stats?.meanError ?? 0) < 0.2 ? "green.500" : "orange.500"}>
+                        {formatNumber(datasetMetrics.stats?.meanError)}
+                      </StatNumber>
+                      <Progress
+                        value={Math.min(100, (datasetMetrics.stats?.meanError ?? 0) * 100)}
+                        colorScheme={(datasetMetrics.stats?.meanError ?? 0) < 0.2 ? "green" : "orange"}
+                        size="xs"
+                      />
+                    </Stat>
+                    <HStack justify="space-between">
+                      <Text fontSize="xs">Std Deviation:</Text>
+                      <Badge>{formatNumber(datasetMetrics.stats?.stdError)}</Badge>
+                    </HStack>
+                    <HStack justify="space-between">
+                      <Text fontSize="xs">Max Error:</Text>
+                      <Badge colorScheme="red">{formatNumber(datasetMetrics.stats?.maxError)}</Badge>
+                    </HStack>
+                    <HStack justify="space-between">
+                      <Text fontSize="xs">Min Error:</Text>
+                      <Badge colorScheme="green">{formatNumber(datasetMetrics.stats?.minError)}</Badge>
+                    </HStack>
+                    <HStack justify="space-between">
+                      <Text fontSize="xs">Total Comparisons:</Text>
+                      <Badge>{datasetMetrics.stats?.pairCount ?? 0}</Badge>
+                    </HStack>
+                  </VStack>
+                ) : (
+                  <Text fontSize="sm" color="gray.500">
+                    Metrics will appear after the selected dataset is processed.
+                  </Text>
+                )
               )}
             </CardBody>
           </Card>
@@ -696,16 +647,16 @@ const AggregatedErrorTreeView = () => {
           </Card>
 
           {/* Error Distribution */}
-          {viewMode !== "comparison" && (
+          {viewMode !== "comparison" && datasetMetrics && (
             <Card>
               <CardBody>
-                {renderErrorDistribution(aggregatedErrors[viewMode], viewMode.toUpperCase())}
+                {renderErrorDistribution(datasetMetrics, viewMode.toUpperCase())}
               </CardBody>
             </Card>
           )}
 
           {/* Comparison Table */}
-          {viewMode === "comparison" && comparisonDataset && (
+          {viewMode === "comparison" && comparisonDataset && errorData.t1 && errorData.t2 && comparisonMetrics && (
             <Card>
               <CardHeader pb={2}>
                 <Text fontWeight="bold" fontSize="sm">Metrics Comparison</Text>
@@ -723,23 +674,23 @@ const AggregatedErrorTreeView = () => {
                   <Tbody>
                     <Tr>
                       <Td fontSize="xs">Mean</Td>
-                      <Td fontSize="xs">{aggregatedErrors.t1.meanError.toFixed(4)}</Td>
-                      <Td fontSize="xs">{aggregatedErrors.t2.meanError.toFixed(4)}</Td>
-                      <Td fontSize="xs" color={aggregatedErrors.t2.meanError < aggregatedErrors.t1.meanError ? "green.500" : "red.500"}>
-                        {(aggregatedErrors.t2.meanError - aggregatedErrors.t1.meanError).toFixed(4)}
+                      <Td fontSize="xs">{formatNumber(errorData.t1.stats?.meanError)}</Td>
+                      <Td fontSize="xs">{formatNumber(errorData.t2.stats?.meanError)}</Td>
+                      <Td fontSize="xs" color={(errorData.t2.stats?.meanError ?? 0) < (errorData.t1.stats?.meanError ?? 0) ? "green.500" : "red.500"}>
+                        {formatNumber((errorData.t2.stats?.meanError ?? 0) - (errorData.t1.stats?.meanError ?? 0))}
                       </Td>
                     </Tr>
                     <Tr>
                       <Td fontSize="xs">Std Dev</Td>
-                      <Td fontSize="xs">{aggregatedErrors.t1.stdError.toFixed(4)}</Td>
-                      <Td fontSize="xs">{aggregatedErrors.t2.stdError.toFixed(4)}</Td>
-                      <Td fontSize="xs">{(aggregatedErrors.t2.stdError - aggregatedErrors.t1.stdError).toFixed(4)}</Td>
+                      <Td fontSize="xs">{formatNumber(errorData.t1.stats?.stdError)}</Td>
+                      <Td fontSize="xs">{formatNumber(errorData.t2.stats?.stdError)}</Td>
+                      <Td fontSize="xs">{formatNumber((errorData.t2.stats?.stdError ?? 0) - (errorData.t1.stats?.stdError ?? 0))}</Td>
                     </Tr>
                     <Tr>
                       <Td fontSize="xs">Max</Td>
-                      <Td fontSize="xs">{aggregatedErrors.t1.maxError.toFixed(4)}</Td>
-                      <Td fontSize="xs">{aggregatedErrors.t2.maxError.toFixed(4)}</Td>
-                      <Td fontSize="xs">{(aggregatedErrors.t2.maxError - aggregatedErrors.t1.maxError).toFixed(4)}</Td>
+                      <Td fontSize="xs">{formatNumber(errorData.t1.stats?.maxError)}</Td>
+                      <Td fontSize="xs">{formatNumber(errorData.t2.stats?.maxError)}</Td>
+                      <Td fontSize="xs">{formatNumber((errorData.t2.stats?.maxError ?? 0) - (errorData.t1.stats?.maxError ?? 0))}</Td>
                     </Tr>
                   </Tbody>
                 </Table>
@@ -755,7 +706,7 @@ const AggregatedErrorTreeView = () => {
               </CardHeader>
               <CardBody>
                 <VStack align="stretch" spacing={2}>
-                  <Text fontSize="xs" noOfLines={2}>{selectedNode.name}</Text>
+                  <Text fontSize="xs" noOfLines={2}>{selectedNode.displayName ?? selectedNode.name}</Text>
                   {selectedNode.projectionError !== undefined && (
                     <>
                       <HStack>
@@ -770,6 +721,16 @@ const AggregatedErrorTreeView = () => {
                       </HStack>
                     </>
                   )}
+                  <Button
+                    size="sm"
+                    colorScheme="gray"
+                    variant="outline"
+                    onClick={() => setSelectedNode(null)}
+                    width="full"
+                    mt={2}
+                  >
+                    Clear Selection
+                  </Button>
                 </VStack>
               </CardBody>
             </Card>

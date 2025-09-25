@@ -28,9 +28,11 @@ import {
   Icon,
   Divider,
 } from "@chakra-ui/react";
+import * as d3 from "d3";
 import { useState, useEffect } from "react";
 import { FiDatabase, FiSettings, FiPlay, FiCheck } from "react-icons/fi";
 import { usePhylo } from "../../src/context/PhyloContext";
+import { prepareProjectionQualityBundle } from "../../src/utils/projectionMetrics";
 
 const DatasetSelector = () => {
   const phyloContext = usePhylo();
@@ -38,7 +40,8 @@ const DatasetSelector = () => {
     setCurrentDataset,
     setComparisonDataset,
     currentDataset,
-    comparisonDataset
+    comparisonDataset,
+    setProjectionQuality
   } = phyloContext;
 
   // Workflow state
@@ -66,9 +69,53 @@ const DatasetSelector = () => {
 
   const datasetOptions = [
     { value: "none", label: "Select a dataset...", disabled: true },
+    { value: "climate_t1", label: "Climate Change News T1 (50 articles)", file: "Climate_Change_News_T1.json" },
+    { value: "climate_t2", label: "Climate Change News T2 (53 articles, updates & additions)", file: "Climate_Change_News_T2.json" },
     { value: "t1_full", label: "T1 Dataset (200 news articles)", file: "T1_news_dataset_full.json" },
     { value: "t2_full", label: "T2 Dataset (210 news articles - includes 10 new)", file: "T2_news_dataset_full.json" },
   ];
+
+  const buildLowDimPointsFromTree = (treeStructure, labels) => {
+    if (!Array.isArray(labels) || labels.length === 0) {
+      return [];
+    }
+
+    if (!treeStructure || typeof treeStructure !== "object") {
+      return labels.map((_, index) => {
+        const angle = (index / labels.length) * 2 * Math.PI;
+        return [Math.cos(angle), Math.sin(angle)];
+      });
+    }
+
+    const hierarchy = d3.hierarchy(treeStructure);
+    const cluster = d3.cluster().size([2 * Math.PI, 1]);
+    cluster(hierarchy);
+
+    const points = new Array(labels.length).fill(null);
+    const labelToIndex = new Map();
+    labels.forEach((label, index) => {
+      labelToIndex.set(label, index);
+    });
+
+    hierarchy.leaves().forEach((leaf) => {
+      const rawLabel = leaf.data?.id ?? leaf.data?.name ?? leaf.data?.label ?? leaf.data?.displayName;
+      const normalizedLabel = typeof rawLabel === "string" ? rawLabel : String(rawLabel ?? "");
+      const index = labelToIndex.has(normalizedLabel) ? labelToIndex.get(normalizedLabel) : null;
+      const angle = leaf.x - Math.PI / 2;
+      const radius = Math.max(0, leaf.y);
+      const point = [Math.cos(angle) * radius, Math.sin(angle) * radius];
+
+      if (index !== null && index !== undefined) {
+        points[index] = point;
+      }
+    });
+
+    return points.map((point, index) => {
+      if (point) return point;
+      const angle = (index / labels.length) * 2 * Math.PI;
+      return [Math.cos(angle), Math.sin(angle)];
+    });
+  };
 
   const loadDataset = async (filename) => {
     try {
@@ -192,36 +239,59 @@ const DatasetSelector = () => {
       const result = await response.json();
 
       // Create projection data from the phylogenetic analysis results
-      if (result.success && result.distance_matrix) {
+      if (result.success && Array.isArray(result.distance_matrix)) {
         if (phyloContext.loadProjectionData) {
           setProcessingStep("Creating projection visualization...");
 
-          // Generate high-dimensional points from distance matrix (for quality analysis)
-          const numPoints = result.distance_matrix.length;
-          const highDimPoints = result.distance_matrix.map((row, i) =>
-            row.map((val, j) => Math.random() * 100 + val * 10) // Mock high-dim features
+          const combinedLabels = Array.isArray(result.enhanced_labels) && result.enhanced_labels.length
+            ? result.enhanced_labels
+            : labels;
+
+          const highDimPoints = result.distance_matrix.map((row) =>
+            Array.isArray(row) ? row.map((value) => Number.isFinite(value) ? value : 0) : []
           );
 
-          // Create 2D projection from tree structure for visualization
-          const lowDimPoints = [];
-
-          // Simple circular layout for visualization
-          for (let i = 0; i < numPoints; i++) {
-            const angle = (i / numPoints) * 2 * Math.PI;
-            const radius = 100 + Math.random() * 50; // Add some variation
-            lowDimPoints.push([
-              Math.cos(angle) * radius,
-              Math.sin(angle) * radius
-            ]);
-          }
+          const lowDimPoints = buildLowDimPointsFromTree(result.tree_structure, combinedLabels);
 
           await phyloContext.loadProjectionData({
-            highDimPoints: highDimPoints,
-            lowDimPoints: lowDimPoints,
-            groups: Array.from({length: numPoints}, (_, i) => i < datasetT1Raw.length ? 0 : 1), // T1 = group 0, T2 = group 1
-            labels: labels
+            highDimPoints,
+            lowDimPoints,
+            groups: combinedLabels.map((_, index) => index < datasetT1Raw.length ? 0 : 1),
+            labels: combinedLabels
           });
         }
+      }
+
+      // Precompute neighborhood preservation data for complementary views
+      try {
+        setProcessingStep("Computing neighborhood metrics for T1...");
+        const pqT1 = await prepareProjectionQualityBundle(datasetT1Raw);
+        if (pqT1) {
+          setProjectionQuality((prev) => ({
+            ...(prev ?? {}),
+            t1: pqT1
+          }));
+        }
+
+        if (datasetT2Raw) {
+          setProcessingStep("Computing neighborhood metrics for T2...");
+          const pqT2 = await prepareProjectionQualityBundle(datasetT2Raw);
+          if (pqT2) {
+            setProjectionQuality((prev) => ({
+              ...(prev ?? {}),
+              t2: pqT2
+            }));
+          }
+        }
+      } catch (metricsError) {
+        console.error("Error computing neighborhood metrics:", metricsError);
+        toast({
+          title: "Neighborhood metrics unavailable",
+          description: metricsError.message,
+          status: "warning",
+          duration: 4000,
+          isClosable: true,
+        });
       }
 
       await new Promise(resolve => setTimeout(resolve, 500)); // Brief pause for UX
@@ -290,13 +360,16 @@ const DatasetSelector = () => {
           <Card variant="outline">
             <CardBody>
               <VStack spacing={4} align="stretch">
-                <HStack>
-                  <Icon as={FiDatabase} color="blue.500" />
-                  <Text fontSize="md" fontWeight="semibold">Select Primary Dataset (T1)</Text>
-                </HStack>
-                <Text fontSize="sm" color="gray.600">
-                  Choose the primary dataset that will be used as the baseline for comparison analysis.
-                </Text>
+              <HStack>
+                <Icon as={FiDatabase} color="blue.500" />
+                <Text fontSize="md" fontWeight="semibold">Select Primary Dataset (T1)</Text>
+              </HStack>
+              <Text fontSize="sm" color="gray.600">
+                Choose the primary dataset that will be used as the baseline for comparison analysis.
+              </Text>
+              <Text fontSize="xs" color="teal.600">
+                Recommended: Climate Change News T1 (curated Kaggle sample)
+              </Text>
                 <Select
                   value={selectedT1}
                   onChange={(e) => handleDatasetSelection("primary", e.target.value)}
@@ -324,13 +397,16 @@ const DatasetSelector = () => {
           <Card variant="outline">
             <CardBody>
               <VStack spacing={4} align="stretch">
-                <HStack>
-                  <Icon as={FiDatabase} color="orange.500" />
-                  <Text fontSize="md" fontWeight="semibold">Select Comparison Dataset (T2)</Text>
-                </HStack>
-                <Text fontSize="sm" color="gray.600">
-                  Choose the comparison dataset to analyze differences and quality metrics.
-                </Text>
+              <HStack>
+                <Icon as={FiDatabase} color="orange.500" />
+                <Text fontSize="md" fontWeight="semibold">Select Comparison Dataset (T2)</Text>
+              </HStack>
+              <Text fontSize="sm" color="gray.600">
+                Choose the comparison dataset to analyze differences and quality metrics.
+              </Text>
+              <Text fontSize="xs" color="teal.600">
+                Recommended: Climate Change News T2 (updates & additions)
+              </Text>
                 <Select
                   value={selectedT2}
                   onChange={(e) => handleDatasetSelection("comparison", e.target.value)}
@@ -446,6 +522,8 @@ const DatasetSelector = () => {
                         <strong>Analysis completed successfully!</strong>
                         <br />
                         You can now explore the quality metrics in the following tabs:
+                        <br />
+                        • Neighborhood Preservation - k-NN preservation with Voronoi overlays
                         <br />
                         • Quality Inspector - Interactive point analysis
                         <br />

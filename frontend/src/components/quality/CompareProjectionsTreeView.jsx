@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import {
   Box,
@@ -19,8 +19,6 @@ import {
   Spinner,
   useColorModeValue,
   useToast,
-  Button,
-  ButtonGroup,
   FormControl,
   FormLabel,
   Switch,
@@ -33,341 +31,193 @@ import {
   Tbody,
   Tr,
   Th,
-  Td,
+  Td
 } from "@chakra-ui/react";
 import { usePhylo } from "../../context/PhyloContext";
 import {
   calculateDistanceMatrix,
   fetchNeighborJoiningTree,
-  createTreeLayout,
-  linkStep
+  computeTreeLeafDistanceMatrix
 } from "../../utils/treeUtils";
 import {
-  constructIncrementalTree,
-  analyzeDatasetDifferences,
-  calculateTreeSimilarity
-} from "../../utils/incrementalTreeUtils";
+  renderRadialTree,
+  defaultTreeTheme
+} from "../../utils/treeRenderer";
+
+const normalizeLabel = (label) => (label ?? "").toString().trim();
+
+const reorderMatrixToLabels = (matrix, sourceLabels = [], targetLabels = []) => {
+  if (!Array.isArray(matrix) || !Array.isArray(sourceLabels) || !Array.isArray(targetLabels)) {
+    return matrix;
+  }
+
+  const indexMap = new Map();
+  sourceLabels.forEach((label, idx) => {
+    indexMap.set(normalizeLabel(label), idx);
+  });
+
+  const missingLabel = targetLabels.some((label) => !indexMap.has(normalizeLabel(label)));
+  if (missingLabel) {
+    return matrix;
+  }
+
+  return targetLabels.map((rowLabel) => {
+    const rowIndex = indexMap.get(normalizeLabel(rowLabel));
+    return targetLabels.map((colLabel) => {
+      const colIndex = indexMap.get(normalizeLabel(colLabel));
+      return matrix[rowIndex]?.[colIndex] ?? 0;
+    });
+  });
+};
+
+const flattenUpperTriangle = (matrix) => {
+  const values = [];
+  if (!Array.isArray(matrix)) return values;
+  const n = matrix.length;
+  for (let i = 0; i < n; i += 1) {
+    for (let j = i + 1; j < n; j += 1) {
+      values.push(matrix[i][j]);
+    }
+  }
+  return values;
+};
+
+const computeCorrelation = (a, b) => {
+  if (!a.length || !b.length || a.length !== b.length) return 0;
+  const meanA = a.reduce((acc, v) => acc + v, 0) / a.length;
+  const meanB = b.reduce((acc, v) => acc + v, 0) / b.length;
+  let numerator = 0;
+  let denomA = 0;
+  let denomB = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    const da = a[i] - meanA;
+    const db = b[i] - meanB;
+    numerator += da * db;
+    denomA += da * da;
+    denomB += db * db;
+  }
+  const denominator = Math.sqrt(denomA * denomB);
+  if (!Number.isFinite(denominator) || denominator === 0) {
+    return 0;
+  }
+  return numerator / denominator;
+};
+
+const buildTreeMetrics = async ({ dataset, existing }) => {
+  if (existing?.lowDistances && existing?.root) {
+    return existing;
+  }
+
+  const distanceData = await calculateDistanceMatrix(dataset);
+  const treeResult = await fetchNeighborJoiningTree(distanceData, dataset);
+  const treeDistances = computeTreeLeafDistanceMatrix(
+    treeResult.root,
+    treeResult.labels ?? distanceData.labels
+  );
+
+  const labels = treeDistances.labels;
+  const lowDistances = treeDistances.matrix;
+  const highDistances = reorderMatrixToLabels(
+    distanceData.matrix,
+    distanceData.labels ?? labels,
+    labels
+  );
+
+  return {
+    labels,
+    labelSet: new Set(labels.map(normalizeLabel)),
+    root: treeResult.root,
+    lowDistances,
+    highDistances,
+    leafCount: labels.length
+  };
+};
+
+const subsetMatrix = (matrix, indices) => {
+  return indices.map((rowIdx) => indices.map((colIdx) => matrix[rowIdx][colIdx] ?? 0));
+};
+
+const computeLeafChanges = (low1, low2, labels, idxMap1, idxMap2) => {
+  const changes = [];
+  let globalSum = 0;
+  let globalCount = 0;
+
+  labels.forEach((label) => {
+    const idx1 = idxMap1.get(label);
+    const idx2 = idxMap2.get(label);
+    if (idx1 === undefined || idx2 === undefined) {
+      return;
+    }
+
+    let sum = 0;
+    let count = 0;
+    let maxDelta = 0;
+
+    labels.forEach((otherLabel) => {
+      if (otherLabel === label) return;
+      const j1 = idxMap1.get(otherLabel);
+      const j2 = idxMap2.get(otherLabel);
+      if (j1 === undefined || j2 === undefined) return;
+
+      const d1 = low1[idx1][j1];
+      const d2 = low2[idx2][j2];
+      if (d1 === undefined || d2 === undefined) return;
+
+      const denom = Math.max(d1, d2);
+      if (!Number.isFinite(denom) || denom <= 1e-12) return;
+
+      const delta = Math.abs(d1 - d2) / denom;
+      if (!Number.isFinite(delta)) return;
+
+      sum += delta;
+      count += 1;
+      if (delta > maxDelta) {
+        maxDelta = delta;
+      }
+    });
+
+    const meanDelta = count > 0 ? sum / count : 0;
+    if (Number.isFinite(meanDelta)) {
+      changes.push({
+        label,
+        meanDelta,
+        maxDelta: Number.isFinite(maxDelta) ? maxDelta : 0
+      });
+      globalSum += sum;
+      globalCount += count;
+    }
+  });
+
+  return {
+    changes,
+    averageDelta: globalCount > 0 ? globalSum / globalCount : 0
+  };
+};
 
 const CompareProjectionsTreeView = () => {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
-  const { currentDataset, comparisonDataset } = usePhylo();
+  const {
+    currentDataset,
+    comparisonDataset,
+    projectionQuality,
+    setProjectionQuality
+  } = usePhylo();
   const toast = useToast();
 
-  const [treeDataT1, setTreeDataT1] = useState(null);
-  const [treeDataT2, setTreeDataT2] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState("side-by-side");
   const [highlightDifferences, setHighlightDifferences] = useState(true);
-  const [showNewNodes, setShowNewNodes] = useState(true);
+  const [showLabels, setShowLabels] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-  const [comparisonMetrics, setComparisonMetrics] = useState({
-    addedNodes: [],
-    removedNodes: [],
-    structuralSimilarity: 0,
-    topologyChange: 0,
-    commonNodes: 0,
-    t1NodeCount: 0,
-    t2NodeCount: 0
-  });
+  const [treeMetrics, setTreeMetrics] = useState({ t1: null, t2: null });
+  const [comparisonSummary, setComparisonSummary] = useState(null);
+  const [leafChanges, setLeafChanges] = useState([]);
 
   const bgColor = useColorModeValue("white", "gray.800");
   const textColor = useColorModeValue("gray.700", "gray.200");
 
-  // Calculate comparison metrics between two trees
-  const calculateComparisonMetrics = useCallback((tree1, tree2) => {
-    if (!tree1 || !tree2) return;
-
-    // Collect all leaf nodes from both trees
-    const getLeafNodes = (node) => {
-      const leaves = [];
-      const traverse = (n) => {
-        if (!n.children) {
-          leaves.push(n.name);
-        } else {
-          n.children.forEach(traverse);
-        }
-      };
-      traverse(node);
-      return leaves;
-    };
-
-    const leaves1 = getLeafNodes(tree1);
-    const leaves2 = getLeafNodes(tree2);
-
-    const set1 = new Set(leaves1);
-    const set2 = new Set(leaves2);
-
-    // Find added and removed nodes
-    const addedNodes = leaves2.filter(n => !set1.has(n));
-    const removedNodes = leaves1.filter(n => !set2.has(n));
-    const commonNodes = leaves1.filter(n => set2.has(n));
-
-    // Calculate structural similarity (Jaccard index)
-    const union = new Set([...leaves1, ...leaves2]);
-    const intersection = commonNodes.length;
-    const structuralSimilarity = intersection / union.size;
-
-    // Calculate topology change
-    const topologyChange = (addedNodes.length + removedNodes.length) / union.size;
-
-    setComparisonMetrics({
-      addedNodes,
-      removedNodes,
-      commonNodes: commonNodes.length,
-      structuralSimilarity,
-      topologyChange,
-      t1NodeCount: leaves1.length,
-      t2NodeCount: leaves2.length
-    });
-  }, []);
-
-  // Load trees for both datasets
-  useEffect(() => {
-    const loadTrees = async () => {
-      if (!currentDataset || !comparisonDataset) return;
-
-      setIsLoading(true);
-      try {
-        // Load T1 tree - use all nodes
-        const distanceDataT1 = calculateDistanceMatrix(currentDataset);
-        const treeResultT1 = await fetchNeighborJoiningTree(distanceDataT1, currentDataset);
-
-        if (treeResultT1) {
-          setTreeDataT1(treeResultT1);
-
-          // Analyze differences and construct T2 incrementally
-          const differences = analyzeDatasetDifferences(currentDataset, comparisonDataset);
-          const treeResultT2 = await constructIncrementalTree(
-            treeResultT1,
-            currentDataset,
-            comparisonDataset
-          );
-
-          if (treeResultT2) {
-            setTreeDataT2({ root: treeResultT2.root });
-
-            // Calculate metrics including tree similarity
-            const similarity = calculateTreeSimilarity(treeResultT1.root, treeResultT2.root);
-            // Don't override the comparison metrics from calculateTreeSimilarity
-            // Just add the additional metrics
-            setComparisonMetrics(prevMetrics => ({
-              ...prevMetrics,
-              t1NodeCount: currentDataset.length,
-              t2NodeCount: comparisonDataset.length,
-              changeType: treeResultT2.changeType
-            }));
-          }
-        }
-      } catch (error) {
-        toast({
-          title: "Failed to load trees",
-          description: error.message,
-          status: "error",
-          duration: 3000,
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadTrees();
-  }, [currentDataset, comparisonDataset, toast, calculateComparisonMetrics]);
-
-  // Render comparison visualization
-  useEffect(() => {
-    if (!treeDataT1 || !treeDataT2) return;
-
-    const width = dimensions.width;
-    const height = dimensions.height;
-
-    // Clear previous
-    d3.select(svgRef.current).selectAll("*").remove();
-
-    const svg = d3.select(svgRef.current)
-      .attr("width", width)
-      .attr("height", height);
-
-    if (viewMode === "side-by-side") {
-      // Side-by-side view
-      const halfWidth = width / 2;
-
-      // Create two groups for each tree
-      const g1 = svg.append("g")
-        .attr("transform", `translate(${halfWidth / 2}, ${height / 2})`);
-
-      const g2 = svg.append("g")
-        .attr("transform", `translate(${halfWidth + halfWidth / 2}, ${height / 2})`);
-
-      // Draw divider
-      svg.append("line")
-        .attr("x1", halfWidth)
-        .attr("y1", 0)
-        .attr("x2", halfWidth)
-        .attr("y2", height)
-        .attr("stroke", "gray")
-        .attr("stroke-width", 1)
-        .attr("stroke-dasharray", "5,5");
-
-      // Labels
-      svg.append("text")
-        .attr("x", halfWidth / 2)
-        .attr("y", 30)
-        .attr("text-anchor", "middle")
-        .attr("font-size", 14)
-        .attr("font-weight", "bold")
-        .text(`T1 (${comparisonMetrics.t1NodeCount} nodes)`);
-
-      svg.append("text")
-        .attr("x", halfWidth + halfWidth / 2)
-        .attr("y", 30)
-        .attr("text-anchor", "middle")
-        .attr("font-size", 14)
-        .attr("font-weight", "bold")
-        .text(`T2 (${comparisonMetrics.t2NodeCount} nodes)`);
-
-      // Draw both trees
-      drawTree(g1, treeDataT1.root, Math.min(halfWidth, height) / 2, "T1");
-      drawTree(g2, treeDataT2.root, Math.min(halfWidth, height) / 2, "T2");
-    } else {
-      // Overlay view
-      const g = svg.append("g")
-        .attr("transform", `translate(${width / 2}, ${height / 2})`);
-
-      const outerRadius = Math.min(width, height) / 2;
-
-      // Draw T1 tree (baseline)
-      drawTree(g, treeDataT1.root, outerRadius, "T1", 0.3);
-
-      // Draw T2 tree (overlay)
-      drawTree(g, treeDataT2.root, outerRadius, "T2", 1.0, true);
-    }
-  }, [treeDataT1, treeDataT2, dimensions, viewMode, highlightDifferences, showNewNodes]);
-
-  // Draw individual tree
-  const drawTree = (container, treeRoot, radius, treeType, opacity = 1.0, isOverlay = false) => {
-    const innerRadius = radius - 100;
-
-    // Create hierarchy and layout
-    const root = d3.hierarchy(treeRoot);
-    const cluster = d3.cluster()
-      .size([360, innerRadius])
-      .separation((a, b) => 1);
-
-    cluster(root);
-
-    // Color schemes
-    const baseColor = treeType === "T1" ? "#4169E1" : "#FF6347";
-    const newNodeColor = "#00FF00";
-    const removedNodeColor = "#FF0000";
-
-    // Link generator
-    const linkConstant = (d) => linkStep(d.source.x, d.source.y, d.target.x, d.target.y);
-
-    // Draw links
-    const links = container.append("g")
-      .attr("fill", "none")
-      .attr("opacity", opacity)
-      .selectAll("path")
-      .data(root.links())
-      .join("path")
-      .attr("d", linkConstant)
-      .attr("stroke", isOverlay ? baseColor : "#999")
-      .attr("stroke-opacity", 0.6)
-      .attr("stroke-width", isOverlay ? 2 : 1);
-
-    // Draw nodes
-    const nodes = container.append("g")
-      .attr("opacity", opacity)
-      .selectAll("g")
-      .data(root.descendants())
-      .join("g")
-      .attr("transform", d => `
-        rotate(${d.x - 90})
-        translate(${d.y},0)
-      `);
-
-    // Highlight differences
-    if (highlightDifferences) {
-      nodes.filter(d => {
-        if (!d.children) {
-          if (treeType === "T2" && comparisonMetrics.addedNodes.includes(d.data.name)) {
-            return true;
-          }
-          if (treeType === "T1" && comparisonMetrics.removedNodes.includes(d.data.name)) {
-            return true;
-          }
-        }
-        return false;
-      })
-      .append("circle")
-      .attr("r", 8)
-      .attr("fill", "none")
-      .attr("stroke", d => {
-        if (comparisonMetrics.addedNodes.includes(d.data.name)) return newNodeColor;
-        if (comparisonMetrics.removedNodes.includes(d.data.name)) return removedNodeColor;
-        return "none";
-      })
-      .attr("stroke-width", 2)
-      .attr("stroke-dasharray", "2,2");
-    }
-
-    // Node circles
-    nodes.append("circle")
-      .attr("r", d => d.children ? 2 : 4)
-      .attr("fill", d => {
-        if (!d.children) {
-          if (showNewNodes && comparisonMetrics.addedNodes.includes(d.data.name)) {
-            return newNodeColor;
-          }
-          if (showNewNodes && comparisonMetrics.removedNodes.includes(d.data.name)) {
-            return removedNodeColor;
-          }
-        }
-        return isOverlay ? baseColor : "#999";
-      })
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 1)
-      .style("cursor", "pointer")
-      .on("click", (event, d) => {
-        setSelectedNode({
-          ...d.data,
-          treeType,
-          isAdded: comparisonMetrics.addedNodes.includes(d.data.name),
-          isRemoved: comparisonMetrics.removedNodes.includes(d.data.name)
-        });
-      })
-      .on("mouseover", function(event, d) {
-        d3.select(this).attr("r", d => d.children ? 3 : 6);
-      })
-      .on("mouseout", function(event, d) {
-        d3.select(this).attr("r", d => d.children ? 2 : 4);
-      });
-
-    // Labels for changed nodes
-    if (showNewNodes) {
-      nodes.filter(d => !d.children && (
-        comparisonMetrics.addedNodes.includes(d.data.name) ||
-        comparisonMetrics.removedNodes.includes(d.data.name)
-      ))
-      .append("text")
-      .attr("dy", ".31em")
-      .attr("x", d => d.x < 180 ? 6 : -6)
-      .attr("text-anchor", d => d.x < 180 ? "start" : "end")
-      .attr("transform", d => d.x >= 180 ? "rotate(180)" : null)
-      .text(d => d.data.name.substring(0, 15))
-      .attr("font-size", 8)
-      .attr("fill", d => {
-        if (comparisonMetrics.addedNodes.includes(d.data.name)) return newNodeColor;
-        if (comparisonMetrics.removedNodes.includes(d.data.name)) return removedNodeColor;
-        return "#000";
-      })
-      .attr("font-weight", "bold");
-    }
-  };
-
-  // Handle resize
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
@@ -381,12 +231,505 @@ const CompareProjectionsTreeView = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  if (!currentDataset || !comparisonDataset) {
+  useEffect(() => {
+    if (!leafChanges.length) {
+      setSelectedNode(null);
+    }
+  }, [leafChanges.length]);
+
+  const ensureMetrics = useCallback(async (key, dataset) => {
+    const existing = projectionQuality?.[key];
+    const result = await buildTreeMetrics({
+      dataset,
+      existing
+    });
+
+    if (result && result !== existing) {
+      setProjectionQuality((prev) => {
+        const previous = prev ?? {};
+        const next = { ...(previous[key] ?? {}), ...result };
+        return { ...previous, [key]: next };
+      });
+    }
+
+    return result;
+  }, [projectionQuality, setProjectionQuality]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!currentDataset || currentDataset.length === 0) {
+        setTreeMetrics({ t1: null, t2: null });
+        setComparisonSummary(null);
+        setLeafChanges([]);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const rawMetricsT1 = await ensureMetrics("t1", currentDataset);
+
+        let rawMetricsT2 = null;
+        if (comparisonDataset && comparisonDataset.length > 0) {
+          rawMetricsT2 = await ensureMetrics("t2", comparisonDataset);
+        }
+
+        if (cancelled) return;
+
+        const augmentMetrics = (metrics) => {
+          if (!metrics) return null;
+          const labels = metrics.labels ?? [];
+          return {
+            ...metrics,
+            labelSet: metrics.labelSet ?? new Set(labels.map(normalizeLabel)),
+            leafCount: metrics.leafCount ?? labels.length
+          };
+        };
+
+        const metricsT1 = augmentMetrics(rawMetricsT1);
+        const metricsT2 = augmentMetrics(rawMetricsT2);
+
+        setTreeMetrics({ t1: metricsT1, t2: metricsT2 });
+
+        if (metricsT1 && metricsT2) {
+          const set1 = new Set(metricsT1.labels.map(normalizeLabel));
+          const set2 = new Set(metricsT2.labels.map(normalizeLabel));
+
+          const addedNodes = metricsT2.labels.filter((label) => !set1.has(normalizeLabel(label)));
+          const removedNodes = metricsT1.labels.filter((label) => !set2.has(normalizeLabel(label)));
+          const commonLabels = metricsT1.labels
+            .map(normalizeLabel)
+            .filter((label) => set2.has(label));
+
+          const unionSize = new Set([
+            ...metricsT1.labels.map(normalizeLabel),
+            ...metricsT2.labels.map(normalizeLabel)
+          ]).size;
+
+          const indices1 = new Map();
+          metricsT1.labels.forEach((label, idx) => {
+            indices1.set(normalizeLabel(label), idx);
+          });
+
+          const indices2 = new Map();
+          metricsT2.labels.forEach((label, idx) => {
+            indices2.set(normalizeLabel(label), idx);
+          });
+
+          let structuralSimilarity = 0;
+          let topologyChange = 0;
+          let leafDiffs = [];
+
+          if (commonLabels.length >= 2) {
+            const commonIndices1 = commonLabels.map((label) => indices1.get(label));
+            const commonIndices2 = commonLabels.map((label) => indices2.get(label));
+
+            const subsetLow1 = subsetMatrix(metricsT1.lowDistances, commonIndices1);
+            const subsetLow2 = subsetMatrix(metricsT2.lowDistances, commonIndices2);
+
+            const flat1 = flattenUpperTriangle(subsetLow1);
+            const flat2 = flattenUpperTriangle(subsetLow2);
+
+            const correlation = computeCorrelation(flat1, flat2);
+            structuralSimilarity = Math.max(0, Math.min(1, (correlation + 1) / 2));
+
+            const { changes, averageDelta } = computeLeafChanges(
+              metricsT1.lowDistances,
+              metricsT2.lowDistances,
+              commonLabels,
+              indices1,
+              indices2
+            );
+
+            leafDiffs = changes;
+            topologyChange = Number.isFinite(averageDelta) ? Math.max(0, averageDelta) : 0;
+          }
+
+          const uniqueDiffsMap = new Map();
+          leafDiffs.forEach((entry) => {
+            const norm = normalizeLabel(entry.label);
+            const existing = uniqueDiffsMap.get(norm);
+            if (!existing) {
+              uniqueDiffsMap.set(norm, entry);
+            } else {
+              uniqueDiffsMap.set(norm, {
+                label: entry.label,
+                meanDelta: Math.max(existing.meanDelta, entry.meanDelta),
+                maxDelta: Math.max(existing.maxDelta, entry.maxDelta)
+              });
+            }
+          });
+
+          const uniqueLeafDiffs = Array.from(uniqueDiffsMap.values());
+          const safeTopologyChange = Math.min(1, Math.max(0, topologyChange));
+
+          setComparisonSummary({
+            structuralSimilarity,
+            topologyChange: safeTopologyChange,
+            commonNodes: commonLabels.length,
+            addedNodes,
+            removedNodes,
+            unionSize,
+            commonLabels
+          });
+
+          setLeafChanges(uniqueLeafDiffs);
+        } else {
+          setComparisonSummary(null);
+          setLeafChanges([]);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error(error);
+          toast({
+            title: "Failed to compare projections",
+            description: error.message,
+            status: "error",
+            duration: 4000
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    currentDataset,
+    comparisonDataset,
+    ensureMetrics,
+    toast
+  ]);
+
+  const leafDiffMap = useMemo(() => {
+    const map = new Map();
+    leafChanges.forEach((entry) => {
+      map.set(normalizeLabel(entry.label), entry);
+    });
+    return map;
+  }, [leafChanges]);
+
+  const handleSelectNode = useCallback((label) => {
+    if (!label) {
+      setSelectedNode(null);
+      return;
+    }
+    const normalized = normalizeLabel(label);
+    const entry = leafDiffMap.get(normalized);
+    setSelectedNode({
+      label,
+      normalized,
+      meanDelta: entry?.meanDelta ?? 0,
+      maxDelta: entry?.maxDelta ?? 0
+    });
+  }, [leafDiffMap]);
+
+  useEffect(() => {
+    const metricsT1 = treeMetrics.t1;
+    const metricsT2 = treeMetrics.t2;
+
+    const svg = d3.select(svgRef.current);
+    svg.selectAll("*").remove();
+
+    if (!metricsT1 || !metricsT1.root) {
+      return;
+    }
+
+    const width = Math.max(dimensions.width || 0, 400);
+    const height = Math.max(dimensions.height || 0, 360);
+
+    svg.attr("width", width).attr("height", height);
+
+    const deltaValues = leafChanges
+      .map((entry) => entry.meanDelta)
+      .filter((value) => Number.isFinite(value));
+    const maxDelta = deltaValues.length ? Math.max(...deltaValues) : 0;
+
+    const colorScale = d3.scaleSequential(d3.interpolateWarm)
+      .domain([0, maxDelta || 1]);
+
+    const widthScale = d3.scaleLinear()
+      .domain([0, maxDelta || 1])
+      .range([1, 6]);
+
+    const selectedNormalized = selectedNode?.normalized ?? null;
+    const commonLabels = comparisonSummary?.commonLabels ?? [];
+    const commonSet = new Set(commonLabels.map(normalizeLabel));
+
+    const theme = {
+      ...defaultTreeTheme,
+      branch: {
+        ...defaultTreeTheme.branch,
+        stroke: "rgba(148, 163, 184, 0.45)",
+        width: 1.1
+      },
+      leaf: {
+        ...defaultTreeTheme.leaf,
+        fill: highlightDifferences ? "#fde68a" : defaultTreeTheme.leaf.fill
+      },
+      label: {
+        ...defaultTreeTheme.label,
+        color: textColor
+      }
+    };
+
+    const colorForLeaf = (node) => {
+      const label = normalizeLabel(node.data?.name ?? node.data?.id);
+      if (!highlightDifferences) {
+        if (commonSet.size && !commonSet.has(label)) {
+          return "#cbd5f5";
+        }
+        return theme.leaf.fill;
+      }
+      const entry = leafDiffMap.get(label);
+      if (entry) {
+        return colorScale(entry.meanDelta);
+      }
+      if (commonSet.size && !commonSet.has(label)) {
+        return "#cbd5f5";
+      }
+      return theme.leaf.fill;
+    };
+
+    const highlightNode = (node) => {
+      if (!selectedNormalized) return false;
+      const label = normalizeLabel(node.data?.name ?? node.data?.id);
+      return label === selectedNormalized;
+    };
+
+    const nodeStyler = (node) => {
+      const label = normalizeLabel(node.data?.name ?? node.data?.id);
+      const diffEntry = leafDiffMap.get(label);
+      const style = {};
+      const isLeaf = !node.children || node.children.length === 0;
+
+      if (isLeaf && highlightDifferences && diffEntry) {
+        style.radius = 4 + Math.min(10, diffEntry.meanDelta * 20);
+      }
+
+      if (selectedNormalized) {
+        if (label === selectedNormalized) {
+          style.stroke = "#f97316";
+          style.strokeWidth = 2.6;
+          style.opacity = 1;
+        } else {
+          style.opacity = 0.35;
+        }
+      } else if (highlightDifferences && !diffEntry && commonSet.size && !commonSet.has(label)) {
+        style.opacity = 0.4;
+      }
+
+      return style;
+    };
+
+    const linkStyler = (link) => {
+      const label = normalizeLabel(link.target.data?.name ?? link.target.data?.id);
+      const diffEntry = leafDiffMap.get(label);
+      const style = {};
+
+      if (highlightDifferences && diffEntry) {
+        style.stroke = colorScale(diffEntry.meanDelta);
+      }
+
+      if (selectedNormalized) {
+        if (label === selectedNormalized) {
+          style.stroke = "#f97316";
+          style.strokeWidth = 2.2;
+          style.strokeOpacity = 0.95;
+        } else {
+          style.strokeOpacity = 0.4;
+        }
+      }
+
+      return style;
+    };
+
+    const appendLeafTitles = (result) => {
+      const nodeGroup = result.treeGroup.select(".tree-nodes");
+      if (nodeGroup.empty()) return;
+
+      nodeGroup
+        .selectAll("g")
+        .filter((d) => d && (!d.children || d.children.length === 0))
+        .append("title")
+        .text((d) => {
+          const label = d?.data?.displayName ?? d?.data?.name ?? "";
+          const entry = leafDiffMap.get(normalizeLabel(label));
+          if (!entry) return label;
+          return `${label}\nΔ mean: ${(entry.meanDelta * 100).toFixed(2)}%\nΔ max: ${(entry.maxDelta * 100).toFixed(2)}%`;
+        });
+    };
+
+    if (viewMode === "side-by-side" && metricsT2?.root) {
+      const panelWidth = width / 2;
+
+      const leftSvg = svg.append("svg")
+        .attr("class", "compare-tree-panel compare-tree-panel--left")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", panelWidth)
+        .attr("height", height);
+
+      const rightSvg = svg.append("svg")
+        .attr("class", "compare-tree-panel compare-tree-panel--right")
+        .attr("x", panelWidth)
+        .attr("y", 0)
+        .attr("width", panelWidth)
+        .attr("height", height);
+
+      const leftResult = renderRadialTree({
+        svg: leftSvg,
+        rootData: metricsT1.root,
+        width: panelWidth,
+        height,
+        theme,
+        showLabels,
+        leafColorAccessor: colorForLeaf,
+        internalColorAccessor: colorForLeaf,
+        highlight: { nodes: highlightNode },
+        linkStyler,
+        nodeStyler,
+        onLeafClick: (node) => handleSelectNode(node.data?.name || node.data?.id || ""),
+        useBranchLengths: true
+      });
+
+      const rightResult = renderRadialTree({
+        svg: rightSvg,
+        rootData: metricsT2.root,
+        width: panelWidth,
+        height,
+        theme,
+        showLabels,
+        leafColorAccessor: colorForLeaf,
+        internalColorAccessor: colorForLeaf,
+        highlight: { nodes: highlightNode },
+        linkStyler,
+        nodeStyler,
+        onLeafClick: (node) => handleSelectNode(node.data?.name || node.data?.id || ""),
+        useBranchLengths: true
+      });
+
+      appendLeafTitles(leftResult);
+      appendLeafTitles(rightResult);
+
+      leftSvg.on("click", (event) => {
+        if (event.target === leftSvg.node()) {
+          setSelectedNode(null);
+        }
+      });
+
+      rightSvg.on("click", (event) => {
+        if (event.target === rightSvg.node()) {
+          setSelectedNode(null);
+        }
+      });
+
+      if (highlightDifferences && commonLabels.length > 0) {
+        const connectorGroup = svg.append("g")
+          .attr("class", "tree-connector-layer")
+          .attr("fill", "none")
+          .attr("pointer-events", "none")
+          .attr("stroke-linecap", "round")
+          .attr("stroke-linejoin", "round");
+
+        const connectorLine = d3.line().curve(d3.curveCatmullRom.alpha(0.6));
+
+        commonLabels.forEach((label) => {
+          const normalized = normalizeLabel(label);
+          const leftPos = leftResult.positionsByLabel.get(normalized);
+          const rightPos = rightResult.positionsByLabel.get(normalized);
+          const diffEntry = leafDiffMap.get(normalized);
+
+          if (!leftPos || !rightPos || !diffEntry) return;
+
+          const leftPoint = { x: leftPos.x, y: leftPos.y };
+          const rightPoint = { x: panelWidth + rightPos.x, y: rightPos.y };
+          const midX = width / 2;
+
+          const opacity = selectedNormalized
+            ? (normalized === selectedNormalized ? 0.95 : 0.08)
+            : Math.max(0.25, diffEntry.meanDelta > 0 ? 0.8 : 0.35);
+
+          const connector = connectorGroup.append("path")
+            .attr("stroke", colorScale(diffEntry.meanDelta))
+            .attr("stroke-width", widthScale(diffEntry.meanDelta))
+            .attr("stroke-opacity", opacity)
+            .attr("d", connectorLine([
+              [leftPoint.x, leftPoint.y],
+              [midX, leftPoint.y - 40],
+              [midX, rightPoint.y + 40],
+              [rightPoint.x, rightPoint.y]
+            ]));
+
+          connector.append("title")
+            .text(`${label}\nΔ mean: ${(diffEntry.meanDelta * 100).toFixed(2)}%`);
+        });
+      }
+    } else {
+      const overlayRoot = highlightDifferences ? metricsT2?.root ?? null : null;
+
+      const result = renderRadialTree({
+        svg,
+        rootData: metricsT1.root,
+        overlayRoot,
+        width,
+        height,
+        theme,
+        showLabels,
+        leafColorAccessor: colorForLeaf,
+        internalColorAccessor: colorForLeaf,
+        highlight: { nodes: highlightNode },
+        linkStyler,
+        nodeStyler,
+        onLeafClick: (node) => handleSelectNode(node.data?.name || node.data?.id || ""),
+        useBranchLengths: true
+      });
+
+      appendLeafTitles(result);
+
+      svg.on("click", (event) => {
+        if (event.target === svg.node()) {
+          setSelectedNode(null);
+        }
+      });
+    }
+  }, [
+    treeMetrics,
+    comparisonSummary,
+    leafChanges,
+    leafDiffMap,
+    highlightDifferences,
+    showLabels,
+    dimensions,
+    textColor,
+    viewMode,
+    handleSelectNode,
+    selectedNode
+  ]);
+
+  const selectedDetails = useMemo(() => {
+    if (!selectedNode) return null;
+    const entry = leafDiffMap.get(selectedNode.normalized ?? normalizeLabel(selectedNode.label));
+    return entry ? {
+      label: selectedNode.label,
+      meanDelta: entry.meanDelta,
+      maxDelta: entry.maxDelta
+    } : null;
+  }, [leafDiffMap, selectedNode]);
+
+  if (!currentDataset) {
     return (
       <Box p={8} textAlign="center">
         <Alert status="warning">
           <AlertIcon />
-          Please load both T1 and T2 datasets from the Data Input tab to compare projections.
+          Please load a dataset from the Data Input tab before comparing projections.
         </Alert>
       </Box>
     );
@@ -394,216 +737,192 @@ const CompareProjectionsTreeView = () => {
 
   return (
     <Box h="full" display="flex">
-      {/* Left Sidebar */}
-      <Box w="350px" p={4} bg="gray.50" borderRight="1px" borderColor="gray.200" overflowY="auto">
+      <Box w="380px" p={4} bg="gray.50" borderRight="1px" borderColor="gray.200" overflowY="auto">
         <VStack spacing={4} align="stretch">
           <Text fontSize="lg" fontWeight="bold">Compare Projections</Text>
           <Text fontSize="sm" color="gray.600">
-            Compare phylogenetic trees between T1 (original) and T2 (updated) datasets
-            to analyze how data changes affect tree structure.
+            Evaluate structural differences between T1 and T2 Neighbor Joining trees using shared nodes.
           </Text>
 
           <Divider />
 
-          {/* Dataset Information */}
           <Card>
             <CardHeader pb={2}>
-              <Text fontWeight="bold" fontSize="sm">Datasets Loaded</Text>
+              <Text fontWeight="bold" fontSize="sm">Datasets</Text>
             </CardHeader>
             <CardBody>
               <VStack spacing={2} align="stretch">
                 <HStack justify="space-between">
-                  <Text fontSize="xs" color="gray.600">T1 Dataset:</Text>
-                  <Badge colorScheme="blue">{comparisonMetrics.t1NodeCount || currentDataset?.length || 0} nodes</Badge>
+                  <Text fontSize="xs">T1 Nodes:</Text>
+                  <Badge colorScheme="blue">{treeMetrics.t1?.leafCount ?? 0}</Badge>
                 </HStack>
-                <HStack justify="space-between">
-                  <Text fontSize="xs" color="gray.600">T2 Dataset:</Text>
-                  <Badge colorScheme="purple">{comparisonMetrics.t2NodeCount || comparisonDataset?.length || 0} nodes</Badge>
-                </HStack>
-                {comparisonMetrics.t1NodeCount > 0 && comparisonMetrics.t2NodeCount > 0 && (
+                {comparisonDataset && (
                   <HStack justify="space-between">
-                    <Text fontSize="xs" color="gray.600">Difference:</Text>
-                    <Badge colorScheme={Math.abs(comparisonMetrics.t1NodeCount - comparisonMetrics.t2NodeCount) > 0 ? "orange" : "green"}>
-                      {Math.abs(comparisonMetrics.t1NodeCount - comparisonMetrics.t2NodeCount)} nodes
-                    </Badge>
+                    <Text fontSize="xs">T2 Nodes:</Text>
+                    <Badge colorScheme="purple">{treeMetrics.t2?.leafCount ?? 0}</Badge>
                   </HStack>
                 )}
               </VStack>
             </CardBody>
           </Card>
 
-          {/* Comparison Metrics */}
-          <Card>
-            <CardHeader pb={2}>
-              <Text fontWeight="bold" fontSize="sm">Comparison Metrics</Text>
-            </CardHeader>
-            <CardBody>
-              <VStack spacing={3} align="stretch">
-                <Stat size="sm">
-                  <StatLabel>Structural Similarity</StatLabel>
-                  <StatNumber color="blue.500">
-                    {(comparisonMetrics.structuralSimilarity * 100).toFixed(1)}%
-                  </StatNumber>
-                  <Progress
-                    value={comparisonMetrics.structuralSimilarity * 100}
-                    colorScheme="blue"
-                    size="xs"
-                  />
-                </Stat>
-                <Stat size="sm">
-                  <StatLabel>Topology Change</StatLabel>
-                  <StatNumber color="orange.500">
-                    {(comparisonMetrics.topologyChange * 100).toFixed(1)}%
-                  </StatNumber>
-                  <Progress
-                    value={comparisonMetrics.topologyChange * 100}
-                    colorScheme="orange"
-                    size="xs"
-                  />
-                </Stat>
-                <HStack justify="space-between">
-                  <Text fontSize="xs" color="gray.600">Common Nodes:</Text>
-                  <Badge colorScheme="purple">{comparisonMetrics.commonNodes}</Badge>
-                </HStack>
-              </VStack>
-            </CardBody>
-          </Card>
-
-          {/* Changes Summary */}
-          <Card>
-            <CardHeader pb={2}>
-              <Text fontWeight="bold" fontSize="sm">Changes Summary</Text>
-            </CardHeader>
-            <CardBody>
-              <VStack spacing={2} align="stretch">
-                <HStack justify="space-between">
-                  <Text fontSize="sm">Added Nodes:</Text>
-                  <Badge colorScheme="green">{comparisonMetrics.addedNodes.length}</Badge>
-                </HStack>
-                <HStack justify="space-between">
-                  <Text fontSize="sm">Removed Nodes:</Text>
-                  <Badge colorScheme="red">{comparisonMetrics.removedNodes.length}</Badge>
-                </HStack>
-              </VStack>
-            </CardBody>
-          </Card>
-
-          {/* View Controls */}
-          <Card>
-            <CardBody>
-              <VStack spacing={3} align="stretch">
-                <Text fontWeight="bold" fontSize="sm">View Options</Text>
-
-                <FormControl>
-                  <FormLabel fontSize="sm">View Mode</FormLabel>
-                  <Select
-                    value={viewMode}
-                    onChange={(e) => setViewMode(e.target.value)}
-                    size="sm"
-                  >
-                    <option value="side-by-side">Side by Side</option>
-                    <option value="overlay">Overlay</option>
-                  </Select>
-                </FormControl>
-
-                <FormControl display="flex" alignItems="center">
-                  <FormLabel htmlFor="highlight-diff" mb="0" fontSize="sm">
-                    Highlight Differences
-                  </FormLabel>
-                  <Switch
-                    id="highlight-diff"
-                    isChecked={highlightDifferences}
-                    onChange={(e) => setHighlightDifferences(e.target.checked)}
-                  />
-                </FormControl>
-
-                <FormControl display="flex" alignItems="center">
-                  <FormLabel htmlFor="show-new" mb="0" fontSize="sm">
-                    Show New/Removed
-                  </FormLabel>
-                  <Switch
-                    id="show-new"
-                    isChecked={showNewNodes}
-                    onChange={(e) => setShowNewNodes(e.target.checked)}
-                  />
-                </FormControl>
-              </VStack>
-            </CardBody>
-          </Card>
-
-          {/* Selected Node */}
-          {selectedNode && (
+          {comparisonDataset ? (
             <Card>
               <CardHeader pb={2}>
-                <Text fontWeight="bold" fontSize="sm">Selected Node</Text>
+                <Text fontWeight="bold" fontSize="sm">View Options</Text>
               </CardHeader>
               <CardBody>
-                <VStack align="stretch" spacing={2}>
-                  <Text fontSize="xs" noOfLines={2}>{selectedNode.name}</Text>
-                  <HStack>
-                    <Badge colorScheme="blue">{selectedNode.treeType}</Badge>
-                    {selectedNode.isAdded && (
-                      <Badge colorScheme="green">New</Badge>
-                    )}
-                    {selectedNode.isRemoved && (
-                      <Badge colorScheme="red">Removed</Badge>
-                    )}
+                <VStack spacing={3} align="stretch">
+                  <FormControl>
+                    <FormLabel fontSize="sm">Layout</FormLabel>
+                    <Select value={viewMode} onChange={(e) => setViewMode(e.target.value)} size="sm">
+                      <option value="side-by-side">Side by Side</option>
+                      <option value="overlay">Overlay</option>
+                    </Select>
+                  </FormControl>
+                  <FormControl display="flex" alignItems="center">
+                    <FormLabel htmlFor="highlight-diff" mb="0" fontSize="sm">
+                      Highlight Differences
+                    </FormLabel>
+                    <Switch
+                      id="highlight-diff"
+                      isChecked={highlightDifferences}
+                      onChange={(e) => setHighlightDifferences(e.target.checked)}
+                    />
+                  </FormControl>
+                  <FormControl display="flex" alignItems="center">
+                    <FormLabel htmlFor="show-labels" mb="0" fontSize="sm">
+                      Show Labels
+                    </FormLabel>
+                    <Switch
+                      id="show-labels"
+                      isChecked={showLabels}
+                      onChange={(e) => setShowLabels(e.target.checked)}
+                    />
+                  </FormControl>
+                </VStack>
+              </CardBody>
+            </Card>
+          ) : (
+            <Alert status="info" borderRadius="md">
+              <AlertIcon />
+              Load a comparison dataset to enable projection comparison.
+            </Alert>
+          )}
+
+          {comparisonSummary && (
+            <Card>
+              <CardHeader pb={2}>
+                <Text fontWeight="bold" fontSize="sm">Comparison Metrics</Text>
+              </CardHeader>
+              <CardBody>
+                <VStack spacing={3} align="stretch">
+                  <Stat size="sm">
+                    <StatLabel>Structural Similarity</StatLabel>
+                    <StatNumber color={comparisonSummary.structuralSimilarity >= 0.7 ? "green.500" : "orange.500"}>
+                      {(comparisonSummary.structuralSimilarity * 100).toFixed(1)}%
+                    </StatNumber>
+                    <Progress
+                      value={comparisonSummary.structuralSimilarity * 100}
+                      size="xs"
+                      colorScheme={comparisonSummary.structuralSimilarity >= 0.7 ? "green" : "orange"}
+                    />
+                    <StatHelpText>Correlation between tree distance structures</StatHelpText>
+                  </Stat>
+
+                  <Stat size="sm">
+                    <StatLabel>Topology Change</StatLabel>
+                    <StatNumber color={comparisonSummary.topologyChange <= 0.2 ? "green.500" : "red.500"}>
+                      {(comparisonSummary.topologyChange * 100).toFixed(1)}%
+                    </StatNumber>
+                    <Progress
+                      value={Math.min(100, comparisonSummary.topologyChange * 100)}
+                      size="xs"
+                      colorScheme={comparisonSummary.topologyChange <= 0.2 ? "green" : "red"}
+                    />
+                    <StatHelpText>Average normalized distance deviation</StatHelpText>
+                  </Stat>
+
+                  <HStack justify="space-between">
+                    <Text fontSize="xs">Common Nodes:</Text>
+                    <Badge colorScheme="blue">{comparisonSummary.commonNodes}</Badge>
+                  </HStack>
+                  <HStack justify="space-between">
+                    <Text fontSize="xs">Added Nodes:</Text>
+                    <Badge colorScheme="purple">{comparisonSummary.addedNodes.length}</Badge>
+                  </HStack>
+                  <HStack justify="space-between">
+                    <Text fontSize="xs">Removed Nodes:</Text>
+                    <Badge colorScheme="orange">{comparisonSummary.removedNodes.length}</Badge>
                   </HStack>
                 </VStack>
               </CardBody>
             </Card>
           )}
 
-          {/* Changed Nodes List */}
-          {(comparisonMetrics.addedNodes.length > 0 || comparisonMetrics.removedNodes.length > 0) && (
+          {leafChanges.length > 0 && (
             <Card>
               <CardHeader pb={2}>
-                <Text fontWeight="bold" fontSize="sm">Changed Nodes</Text>
+                <Text fontWeight="bold" fontSize="sm">Top Changed Nodes</Text>
               </CardHeader>
               <CardBody>
                 <Table size="sm">
                   <Thead>
                     <Tr>
                       <Th fontSize="xs">Node</Th>
-                      <Th fontSize="xs">Change</Th>
+                      <Th fontSize="xs">Δ Mean</Th>
+                      <Th fontSize="xs">Δ Max</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {comparisonMetrics.addedNodes.slice(0, 5).map((node, i) => (
-                      <Tr key={`add-${i}`}>
-                        <Td fontSize="xs">{(typeof node === 'string' ? node : node?.name || node?.id || 'Unknown').substring(0, 15)}</Td>
-                        <Td>
-                          <Badge colorScheme="green" size="sm">Added</Badge>
-                        </Td>
-                      </Tr>
-                    ))}
-                    {comparisonMetrics.removedNodes.slice(0, 5).map((node, i) => (
-                      <Tr key={`rem-${i}`}>
-                        <Td fontSize="xs">{(typeof node === 'string' ? node : node?.name || node?.id || 'Unknown').substring(0, 15)}</Td>
-                        <Td>
-                          <Badge colorScheme="red" size="sm">Removed</Badge>
-                        </Td>
-                      </Tr>
-                    ))}
+                    {leafChanges
+                      .slice()
+                      .sort((a, b) => b.meanDelta - a.meanDelta)
+                      .slice(0, 8)
+                      .map((entry, index) => {
+                        const label = entry.label ? String(entry.label) : "-";
+                        return (
+                          <Tr key={`${label}-${index}`}>
+                            <Td fontSize="xs">{label.substring(0, 24)}</Td>
+                            <Td fontSize="xs">{(entry.meanDelta * 100).toFixed(2)}%</Td>
+                            <Td fontSize="xs">{(entry.maxDelta * 100).toFixed(2)}%</Td>
+                          </Tr>
+                        );
+                      })}
                   </Tbody>
                 </Table>
+              </CardBody>
+            </Card>
+          )}
+
+          {selectedDetails && (
+            <Card>
+              <CardHeader pb={2}>
+                <Text fontWeight="bold" fontSize="sm">{selectedDetails.label}</Text>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={2}>
+                  <HStack justify="space-between">
+                    <Text fontSize="xs">Mean Δ</Text>
+                    <Badge colorScheme="orange">{(selectedDetails.meanDelta * 100).toFixed(2)}%</Badge>
+                  </HStack>
+                  <HStack justify="space-between">
+                    <Text fontSize="xs">Max Δ</Text>
+                    <Badge colorScheme="red">{(selectedDetails.maxDelta * 100).toFixed(2)}%</Badge>
+                  </HStack>
+                </VStack>
               </CardBody>
             </Card>
           )}
         </VStack>
       </Box>
 
-      {/* Main Visualization */}
-      <Box flex={1} ref={containerRef} bg={bgColor} position="relative">
+      <Box ref={containerRef} flex={1} bg={bgColor} position="relative">
         {isLoading ? (
           <Box position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)">
             <VStack spacing={4}>
-              <Spinner size="xl" color="blue.500" />
-              <Text fontWeight="bold">Comparing projections...</Text>
-              <VStack spacing={1}>
-                <Text fontSize="sm" color="gray.600">Loading T1 dataset ({currentDataset?.length || 0} nodes)</Text>
-                <Text fontSize="sm" color="gray.600">Loading T2 dataset ({comparisonDataset?.length || 0} nodes)</Text>
-              </VStack>
+              <Spinner size="lg" color="blue.500" />
+              <Text fontSize="sm" color="gray.600">Loading projection comparison...</Text>
             </VStack>
           </Box>
         ) : (
